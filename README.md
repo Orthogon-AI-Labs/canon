@@ -10,7 +10,7 @@ One command installs three pieces of community work and wires them together as o
 |---|---|---|
 | `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio | [Karpathy](https://x.com/karpathy) | Behavioral spec + decision log + failure log. The viral thread reports coding accuracy ~65% → ~94% with the four-line minimum `CLAUDE.md` alone. |
 | `/ce:plan` + `/ce:work` | [Every Inc — Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | Parallel research agents produce a structured plan; execution ticks off acceptance criteria. |
-| `/last30days` | [Matt Van Horn](https://github.com/mvanhorn/last30days-skill) | Parallel community-knowledge search across Reddit / X / YouTube / HN / open web — grounds `/ce:plan` in fresh source material. |
+| `/last30days` | [Matt Van Horn](https://github.com/mvanhorn/last30days-skill) | Parallel community-knowledge search across Reddit / HN / Polymarket / GitHub / X / YouTube / TikTok / Instagram / Bluesky / open web — grounds `/ce:plan` in fresh source material. Most sources free; ScrapeCreators key unlocks paid platforms. |
 
 The canonical loop is **research → plan → execute → persist**:
 

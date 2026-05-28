@@ -53,6 +53,26 @@ What canon adds:
 
 ---
 
+## Mervin Praison — look-back meta-prompt
+
+Source: [Codex Meta-Prompt: Turn Repeated Sessions Into Skills, Subagents, and Automations](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (mer.vin, May 25, 2026)
+
+The `look-back` skill in canon is a direct adaptation of Mervin Praison's meta-prompt for asking Codex to mine recent sessions, Memories, and Chronicle for repeated workflows worth packaging as the smallest useful skill, subagent, or automation. The evidence order, the four creation gates (frequency ≥2, stable I/O, material benefit, no duplicate), and the skill/subagent/automation decision frame are his.
+
+What canon uses:
+- The structured meta-prompt body (evidence order, gates, decision frame, shortlist-before-create discipline)
+- The "create only high-confidence missing items" rule
+- The cross-form taxonomy: skill / custom subagent / automation / skip
+
+What canon adds:
+- Packaging the prompt as a triggerable skill (`canon-look-back` / `/canon:look-back`) instead of paste-into-Codex
+- Adaptation for both Codex and Claude Code surfaces — canon's port keeps the prompt content runtime-agnostic
+- Activation via natural-language triggers ("look back over my recent work," "what should I package as a skill") in addition to the slash command
+
+Mervin's other relevant work: [PraisonAI](https://docs.praison.ai) (agent framework) and [github.com/MervinPraison](https://github.com/MervinPraison).
+
+---
+
 ## The agentic-program-strategies vault
 
 The synthesis that produced canon came from a vault of agent-tooling notes maintained at [github.com/orthogon-ai-labs](https://github.com/orthogon-ai-labs). The relevant source files were:

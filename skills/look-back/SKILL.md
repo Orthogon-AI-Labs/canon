@@ -10,6 +10,8 @@ metadata:
 
 # canon look-back
 
+> Adapted from [Mervin Praison's Codex Meta-Prompt](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (mer.vin, May 25, 2026). See [CREDITS.md](../../CREDITS.md) for the full attribution.
+
 Mine recent work for repeated workflows and propose the smallest reusable asset: a skill, subagent, automation proposal, or extension to something that already exists.
 
 This workflow is intentionally conservative. It should produce a shortlist before creating files, and it should skip weak candidates.

@@ -72,7 +72,9 @@ If the user opted out, skip this entire step.
 
 ### 3. Install /last30days (if opted in)
 
-`/last30days` is a separate open-source skill by Matt Van Horn (the same person who wrote the Compound Engineering thread). It runs parallel searches across Reddit, X, YouTube, TikTok, Instagram, Hacker News, Polymarket, and the open web — typically returning a structured brief in 2-3 minutes. The point: ground `/ce:plan` in *current* community knowledge instead of six-month-old training data.
+`/last30days` is an open-source skill by Matt Van Horn ([github.com/mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill)). It runs parallel searches across Reddit, Hacker News, Polymarket, GitHub, X / Twitter, YouTube, TikTok, Instagram, Threads, Pinterest, Bluesky, and the open web — typically returning a structured brief in 2-3 minutes. The point: ground `/ce:plan` in *current* community knowledge instead of training-data-era information.
+
+**Cost and setup model (bring your own keys).** Most of `/last30days` is free out of the box: Reddit (with comments), Hacker News, Polymarket, and GitHub work with zero credentials. X / Twitter works free via browser session (just be logged into x.com), YouTube via `yt-dlp` (free), Bluesky via app password (free). The paid unlocks are optional: TikTok, Instagram, Threads, Pinterest, and YouTube comments require a **ScrapeCreators API key** (10,000 free calls, paid after). Perplexity Sonar (via OpenRouter) and Brave web search are optional pay-as-you-go layers. The `/last30days` setup wizard handles all of this on first run — users who only want the free tier can skip the paid unlocks.
 
 The canonical loop is **research → plan → work**:
 
@@ -86,18 +88,19 @@ If the user opted in (default):
 
 1. **Check for prior install.** Look for the `/last30days` slash command in the current environment. If it's available, skip ahead and confirm one-liner to the user.
 
-2. **Install from GitHub.** If not available, the skill lives at `github.com/mvanhorn/last30days-skill` (4.5k+ stars). Try the most likely install command first:
+2. **Install via the Claude Code marketplace.** If not available, run:
 
    ```
    /plugin marketplace add mvanhorn/last30days-skill
-   /plugin install last30days
    ```
 
-   If those commands fail (the repo may use a different install method), fall back to instructing the user to follow the README at https://github.com/mvanhorn/last30days-skill — it may require cloning the repo and copying `SKILL.md` into `~/.claude/skills/`, or a plugin install from a direct URL.
+   That's the install per Matt's README. If Claude Code prompts for an explicit install confirmation, accept it. For other surfaces (claude.ai web, OpenClaw, Gemini CLI, manual), see the install matrix in [the upstream README](https://github.com/mvanhorn/last30days-skill).
 
 3. **Verify.** After install, confirm `/last30days` is now available. If verification fails, report clearly and continue with the rest of the bootstrap — the persistence + planning loop still works without `/last30days`, the user just won't have the research step pre-wired.
 
-4. **Note for offline / restricted hosts.** Same fallback as Compound Engineering — surface the GitHub URL and install command as a copy-paste block for the user to run later, and continue.
+4. **First-run wizard.** On first invocation of `/last30days`, the upstream setup wizard appears and walks the user through optional credential setup. Reddit + HN + Polymarket + GitHub work without any credentials, so the wizard can be fully skipped without losing core value.
+
+5. **Note for offline / restricted hosts.** Same fallback as Compound Engineering — surface the GitHub URL and install command as a copy-paste block for the user to run later, and continue.
 
 If the user opted out, skip this entire step.
 

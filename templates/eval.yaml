@@ -1,0 +1,24 @@
+name: example-skill-eval
+skill: skills/example/SKILL.md
+metric: pass_rate
+threshold:
+  accept: strict_improvement
+tasks:
+  - id: required-phrases
+    input: fixtures/example/output.md
+    expected:
+      contains:
+        - "specific output"
+        - "stopping condition"
+      not_contains:
+        - "generic advice"
+      regex:
+        - "## (Workflow|Procedure)"
+
+  - id: command-output
+    expected:
+      command: "printf '%s\n' '{\"status\":\"ok\"}'"
+      json_schema:
+        type: object
+        required:
+          - status

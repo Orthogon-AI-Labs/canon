@@ -148,6 +148,7 @@ After writing files, output:
 - Compound Engineering install status (installed by this run, already present, or skipped per user opt-out / install failed)
 - `/last30days` install status (installed by this run, already present, or skipped per user opt-out / install failed)
 - A reminder that the bundled `decision-log` and `errors-check` skills handle the manual write/read cases when the hooks aren't sufficient
+- A reminder that `look-back`, `protected-sections`, and `optimize` are also available for workflow mining, Markdown invariants, and eval-gated skill improvement
 - The canonical loop in one line: `/last30days <topic>` → `/ce:plan <task>` → `/ce:work`
 - A suggested first command pair: try `/last30days <topic related to your project>` followed by `/ce:plan <your first task>` — to verify the full loop is wired up end to end
 

@@ -1,0 +1,3 @@
+# Protected Example
+
+Editable note.

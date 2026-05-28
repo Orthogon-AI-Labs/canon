@@ -1,0 +1,24 @@
+name: toy-email-skill
+skill: fixtures/skills/toy-email/SKILL.md
+metric: pass_rate
+threshold:
+  accept: strict_improvement
+tasks:
+  - id: required-fields
+    input: fixtures/outputs/toy-email-good.md
+    expected:
+      contains:
+        - "specific output"
+        - "stopping condition"
+      not_contains:
+        - "generic advice"
+      regex:
+        - "## Workflow"
+
+  - id: command-json
+    expected:
+      command: "printf '%s\n' '{\"status\":\"ok\"}'"
+      json_schema:
+        type: object
+        required:
+          - status

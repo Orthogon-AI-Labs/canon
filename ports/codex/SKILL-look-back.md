@@ -11,6 +11,8 @@ metadata:
 
 # canon look-back
 
+> Adapted from [Mervin Praison's Codex Meta-Prompt](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (mer.vin, May 25, 2026). See the canon repo's `CREDITS.md` for the full attribution.
+
 Review recent work and propose the smallest reusable asset: a skill, subagent, automation proposal, or extension to something that already exists.
 
 ## When to Use

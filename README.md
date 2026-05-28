@@ -77,6 +77,50 @@ The Codex path writes `AGENTS.md`, `MEMORY.md`, `ERRORS.md`, portable skill docs
 
 Use `--dry-run` to preview the install before writing or replacing files.
 
+## Using protected sections
+
+The worst kind of agent mistake is the silent one. Tests failing is loud — you see red and fix it. *"I quietly rewrote your hard-won voice rules while reformatting the file"* is silent: you don't notice for a week, by which point the change is buried in history. Protected sections are the cheapest fix for that class of failure.
+
+Wrap any chunk of a Markdown file with two HTML-comment markers:
+
+```markdown
+# Project context
+
+We use Python 3.11, FastAPI, and Postgres 16.
+
+<!-- canon:protected:start name="stack-lock" -->
+
+The stack is locked. Don't suggest switching to Node or Mongo.
+Don't pull in async libraries that aren't already in `pyproject.toml`.
+The ORM is SQLAlchemy 2.0 async — not Django, not Tortoise.
+
+<!-- canon:protected:end -->
+
+## Voice
+
+<!-- canon:protected:start name="voice-rules" -->
+
+Write like a tired senior engineer. No marketing language.
+Cite specific line numbers when discussing code.
+Never use the word "delve."
+
+<!-- canon:protected:end -->
+```
+
+The `name="..."` is yours to pick — make it descriptive (`stack-lock`, `voice-rules`, `migration-schema`) because the name shows up in the failure message when something gets touched.
+
+**Heuristic:** wrap anything you spent more than 20 minutes getting right. The ten seconds it takes to add markers buys you protection against every future agent edit silently undoing the work.
+
+**When you actually want to change a protected block:** either remove the markers (you're saying "this isn't sacred anymore"), or use canon's explicit override phrasing so the change is intentional and recorded. Either is fine; the point is that the change is deliberate rather than accidental.
+
+**Manual check anytime:**
+
+```bash
+python3 hooks/scripts/check-protected-sections.py
+```
+
+Runs from the repo root. Exits 0 if every protected block is intact, exits 1 with the file and block name if anything was modified. The `protected-sections` skill also wraps this with conversational triggers ("check protected sections," "did anything touch the protected blocks").
+
 ## What's in the plugin
 
 **Six skills:**
@@ -122,7 +166,7 @@ Use `--dry-run` to preview the install before writing or replacing files.
 - **Add custom CLAUDE.md sections** by editing `templates/CLAUDE-standard.md` after install — your edits survive re-runs of the init skill, which always asks before overwriting.
 - **Disable hooks** by editing `hooks/hooks.json` — set the matcher to a value that never matches, or remove the entry entirely. The skills still work without hooks; they'll just trigger on user phrasing instead of automatically.
 - **Tune the Stop hook's conservativeness** in `hooks/hooks.json` — the prompt explicitly tells the hook to be conservative; loosen or tighten the threshold language to taste.
-- **Protect a Markdown invariant** by wrapping it with `<!-- canon:protected:start name="..." -->` and `<!-- canon:protected:end -->`, then run `python3 hooks/scripts/check-protected-sections.py` before finalizing Markdown diffs.
+- **Add new protected sections** anywhere in your Markdown — see the [Using protected sections](#using-protected-sections) section above for the marker syntax and workflow.
 - **Evaluate a skill** by copying `templates/eval.yaml`, filling in deterministic tasks, and running `hooks/scripts/canon-eval.sh evals/<skill>.yaml`.
 - **Try the shipped toy eval** with `hooks/scripts/canon-eval.sh fixtures/evals/toy-email.yaml`.
 
@@ -141,6 +185,7 @@ canon is glue. The intelligence is in the upstream work, credited inline above a
 - **Andrej Karpathy** — `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` pattern and the 21-rule template
 - **Every Inc** — [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) (`/ce:plan` + `/ce:work`)
 - **Matt Van Horn** — [/last30days](https://github.com/mvanhorn/last30days-skill) research skill
+- **Mervin Praison** — [Codex meta-prompt](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (the basis for canon's `look-back` skill)
 
 The synthesis came from the [agentic-program-strategies vault](https://github.com/orthogon-ai-labs).
 

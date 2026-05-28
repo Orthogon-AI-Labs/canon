@@ -1,0 +1,38 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/load-memory.sh",
+          "timeout": 10
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "Check whether this response completed a unit of work substantial enough to log to MEMORY.md (a shipped feature, a resolved bug, a meaningful decision, an approach that took more than two attempts). If yes, invoke the decision-log skill to append a session entry to MEMORY.md at the project root. If the response was a one-line answer, a clarifying question, an interrupted thought, or trivial work, do nothing. Be conservative — frequent low-value writes destroy the signal-to-noise of MEMORY.md.",
+          "timeout": 30
+        }
+      ]
+    }
+  ],
+  "UserPromptSubmit": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "prompt",
+          "prompt": "If the user's request involves implementation work that resembles past tasks in this project (bug fix, architecture choice, library selection, performance work, refactor), silently invoke the errors-check skill in read mode before suggesting any approach. Surface a match only if confident it applies. Skip this check for one-line answers, clarifying questions, or non-implementation requests.",
+          "timeout": 15
+        }
+      ]
+    }
+  ]
+}

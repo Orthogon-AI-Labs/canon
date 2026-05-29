@@ -44,7 +44,7 @@ Use stable, descriptive names. Lowercase slug names are best.
 Run this from the repository root:
 
 ```bash
-python3 hooks/scripts/check-protected-sections.py
+python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py
 ```
 
 If the protected checker has been copied into a project by the Codex installer, run:
@@ -56,7 +56,7 @@ python3 .canon/codex/bin/check-protected-sections.py
 To allow one explicitly approved block:
 
 ```bash
-python3 hooks/scripts/check-protected-sections.py --allow routing-invariant
+python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py --allow routing-invariant
 ```
 
 ## Workflow

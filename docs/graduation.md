@@ -27,7 +27,7 @@ Everything lives under `.canon/graduation/`:
 └── README.md
 ```
 
-Scaffold it deterministically:
+Scaffold it deterministically (these bare paths assume you're inside the canon repo; when canon is installed as a plugin, use the `/canon:graduate-skill` command, which resolves the scaffolder via `${CLAUDE_PLUGIN_ROOT}`):
 
 ```bash
 scripts/graduation/scaffold.sh <task-name>

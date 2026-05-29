@@ -51,14 +51,14 @@ All graduation state lives under `.canon/graduation/`:
 Scaffold a workspace deterministically:
 
 ```bash
-scripts/graduation/scaffold.sh <task-name>
+${CLAUDE_PLUGIN_ROOT}/scripts/graduation/scaffold.sh <task-name>
 ```
 
 `scaffold.sh` is collision-safe — it skips existing files, supports `--root`, `--force`, and `--dry-run`, and never clobbers a `strategy.md` you have been iterating on.
 
 ## `task.md` — fixed definition
 
-`task.md` is written once and rarely changes. It records the objective, inputs, expected output schema, observable success criteria, and constraints. Start from `templates/graduation-task.md`. Do not put strategy in `task.md` — that belongs in `strategy.md`.
+`task.md` is written once and rarely changes. It records the objective, inputs, expected output schema, observable success criteria, and constraints. Start from `${CLAUDE_PLUGIN_ROOT}/templates/graduation-task.md`. Do not put strategy in `task.md` — that belongs in `strategy.md`.
 
 ## `strategy.md` — the only fast-changing state
 
@@ -100,7 +100,7 @@ If neither holds, do **not** graduate. Report what's still flaky and stop.
 
 ## Graduated Skill Requirements
 
-The graduated `SKILL.md` (start from `templates/graduated-skill.md`) **must** include:
+The graduated `SKILL.md` (start from `${CLAUDE_PLUGIN_ROOT}/templates/graduated-skill.md`) **must** include:
 
 - Frontmatter `name` and `description`.
 - Purpose.
@@ -143,7 +143,7 @@ If Browserbase is absent, the manual trace-driven loop above still works — you
 
 ## Handoff to optimize
 
-Once a skill is graduated and has a couple of repeatable tasks, it becomes a candidate for `/canon:optimize`: write an eval from `templates/eval.yaml`, then tighten the graduated skill against it. Mention this as the suggested next step in the final report, but don't run it automatically.
+Once a skill is graduated and has a couple of repeatable tasks, it becomes a candidate for `/canon:optimize`: write an eval from `${CLAUDE_PLUGIN_ROOT}/templates/eval.yaml`, then tighten the graduated skill against it. Mention this as the suggested next step in the final report, but don't run it automatically.
 
 ## Hard Rules
 

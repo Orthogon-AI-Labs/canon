@@ -35,20 +35,20 @@ Natural triggers:
 - A local eval file, or explicit permission to create one first.
 - A deterministic metric, usually pass rate.
 
-Refuse to optimize without an eval file. Offer to draft an eval from `templates/eval.yaml`.
+Refuse to optimize without an eval file. Offer to draft an eval from `${CLAUDE_PLUGIN_ROOT}/templates/eval.yaml`.
 
 ## Script Helpers
 
 Run an eval:
 
 ```bash
-hooks/scripts/canon-eval.sh evals/<name>.yaml
+${CLAUDE_PLUGIN_ROOT}/hooks/scripts/canon-eval.sh evals/<name>.yaml
 ```
 
 Check protected sections:
 
 ```bash
-python3 hooks/scripts/check-protected-sections.py
+python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py
 ```
 
 ## How Validation Works (alpha)

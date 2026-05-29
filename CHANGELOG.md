@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — context minimization
+
+Repositioned canon around the evidence on context files (ETH Zurich, arXiv 2602.11988): small, human-written context helps; large, machine-generated context hurts and costs more. See `docs/context-minimization-plan-2026-05-29.md`.
+
+- README: removed the unreproducible "~65% → ~94%" accuracy claim; added a "What the evidence says" section grounding canon's narrower claim (keep context minimal and human-curated, prove changes against an eval).
+- `Stop` memory hook now **proposes** a MEMORY.md entry for confirmation instead of writing silently; silent-append is an opt-in (the hook prompt documents the toggle). Updated README hook descriptions to match.
+- Templates: added `GLOBAL-defaults.md` (generic behavior preferences for `~/.claude`, not per-project context); trimmed the overview/Goal/Audience block from `CLAUDE-standard.md` and `CLAUDE-full.md`; relabeled `full` as not-the-default with a pointer to the global starter. Added a "no architecture overview" note.
+- `canon-eval`: added deterministic `max_chars` / `min_chars` graders (dependency-free token-cost proxy). Documented in `docs/optimize.md` and `templates/eval.yaml`.
+- `optimize` now handles **context files** (`CLAUDE.md` / `MEMORY.md` / `AGENTS.md`), not just skills: deletions-only edits, accept only if the file is strictly smaller and the behavior check still passes, protected sections preserved. Skill bumped to 0.2.0; `/canon:optimize` and the command brief updated.
+- Added `scripts/optimize/scaffold-context-eval.sh` — generates a context-file optimize eval (a `max_chars` cost budget at the file's baseline size plus an optional behavior `command`). Collision-safe `--root` / `--force` / `--dry-run`.
+- `docs/specs/06-optimize-context-files.md` implemented (size grader + scaffold + optimize context-file mode all shipped).
+
 ## 0.5.0 - 2026-05-29
 
 - Added the `graduate-skill` skill and `/canon:graduate-skill` command (spec 05): turn repeated browser/task traces into a durable, self-contained `SKILL.md` via a bounded `strategy.md` iteration loop, with a Browserbase-compatible trace path and a handoff to `/canon:optimize`.

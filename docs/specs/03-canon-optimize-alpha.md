@@ -189,3 +189,5 @@ Regression test: create a candidate that improves one task but breaks another. I
 ## Launch Copy
 
 `canon optimize` treats your skills like trainable source code: eval first, bounded edits, protected sections, strict validation gate.
+
+> Inspired by the **SkillOpt** pattern ([arXiv 2605.23904](https://arxiv.org/abs/2605.23904); ref. implementation [github.com/muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering)) — original implementation, not bundled code. See `CREDITS.md` → Inspirations.

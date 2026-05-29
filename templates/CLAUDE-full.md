@@ -1,16 +1,16 @@
 # CLAUDE.md — {{PROJECT_NAME}}
 
 > Read this file at the start of every session. Don't paraphrase — execute.
+>
+> **Heads up:** most of Sections 1 and 2 below are *generic behavior preferences*, not facts about this project. The evidence canon is built on (repo README, "What the evidence says") shows that generic behavioral and overview prose in a per-project context file doesn't improve task success and costs tokens on every task. The recommended setup is to move that content to your global `~/.claude` config once (see `GLOBAL-defaults.md`) and keep this file lean: stack, constraints, non-standard patterns, gotchas, and the persistence pointers. This `full` template is kept for users who explicitly want everything in one project file; it is **not** the default. Run `canon optimize CLAUDE.md` to prune it against an eval.
 
 ## Section 0: Project context
 
 - **Name:** {{PROJECT_NAME}}
 - **Owner:** {{USER_NAME}} ({{USER_ROLE}})
-- **Goal:** {{TODO: one-line outcome this project ships}}
-- **Audience:** {{TODO: who uses what this project produces}}
 - **What to avoid:** {{TODO: list constraints, no-go directions}}
 
-## Section 1: Defaults — kill the friction
+## Section 1: Defaults — kill the friction (consider moving to `GLOBAL-defaults.md`)
 
 **Kill the filler.**
 Never open responses with filler phrases like "Great question!", "Of course!", "Certainly!", or similar warmups. Start every response with the actual answer. No preamble, no acknowledgment of the question.

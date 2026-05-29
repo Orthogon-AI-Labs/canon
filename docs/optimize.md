@@ -1,8 +1,10 @@
 # canon optimize
 
-`canon optimize` is an alpha workflow for improving one `SKILL.md` at a time with measured, bounded edits.
+`canon optimize` is an alpha workflow for improving one target at a time — a `SKILL.md`, or a **context file** (`CLAUDE.md` / `MEMORY.md` / `AGENTS.md`) — with measured, bounded edits.
 
 The rule is simple: eval first, patch narrowly, validate, and keep only strict improvements.
+
+For context files the goal is to get **smaller**: edits are deletions/consolidations only, and a prune is accepted only if the file is strictly smaller (deterministic `max_chars` budget) **and** the project's own behavior check still passes. Scaffold the eval with `scripts/optimize/scaffold-context-eval.sh <context-file> --command "<your tests>"`. The full procedure is in the `optimize` skill under "Context files." This operationalizes the context-minimization plan (`docs/context-minimization-plan-2026-05-29.md`).
 
 ## Eval Files
 
@@ -33,6 +35,7 @@ Supported alpha graders:
 - `regex`
 - `json_schema`
 - `command`
+- `max_chars` / `min_chars` — deterministic size budget. Fails if the graded text is over (`max_chars`) or under (`min_chars`) the limit; the failure reports the actual char count. Char count is a dependency-free proxy for token cost, used by `canon optimize <context-file>` (spec 06) to prove a prune cut cost. Pair with a `command` task that runs your project's tests to confirm behavior held.
 
 If a task has `expected.command`, the command output is graded. Otherwise the runner reads the task `input` file and grades that text.
 

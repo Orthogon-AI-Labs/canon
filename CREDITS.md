@@ -6,7 +6,7 @@
 
 ## Andrej Karpathy — CLAUDE.md / MEMORY.md / ERRORS.md pattern
 
-The three-file persistence pattern at the heart of canon is Karpathy's. The viral thread that established it reported coding accuracy moving from roughly 65% to roughly 94% with the four-line minimum `CLAUDE.md` alone. The full template shipped in `templates/CLAUDE-full.md` is a direct adaptation.
+The three-file persistence pattern at the heart of canon is Karpathy's: a small, human-written context file the agent reads at task start, plus a decision log and a failure log. The full template shipped in `templates/CLAUDE-full.md` is a direct adaptation. (canon no longer repeats the viral "65% → 94%" accuracy figure; see the README's "What the evidence says" for the measured picture.)
 
 What canon uses:
 - The three-file structure (`CLAUDE.md` for behavior, `MEMORY.md` for decisions, `ERRORS.md` for failures)
@@ -75,6 +75,25 @@ Mervin's other relevant work: [PraisonAI](https://docs.praison.ai) (agent framew
 
 ---
 
+## Inspirations — canon-original implementations, not bundled code
+
+The components above are upstream work canon installs or wraps. The two skills below are different: the *pattern* came from elsewhere, but the code is canon's own. canon does not install or vendor their code — it reimplements the idea, and defers to the original where one exists.
+
+### SkillOpt — the basis for `optimize`
+
+- Paper: *SkillOpt*, one of the first to treat markdown `SKILL.md` files as trainable parameters with a proper optimization framework — [arXiv 2605.23904](https://arxiv.org/abs/2605.23904).
+- Referenced implementation: [github.com/muratcankoylan/Agent-Skills-for-Context-Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering).
+
+What canon takes from it: the eval-first loop, the strict-improvement validation gate (ties rejected), bounded edits (best skills land in 1–4 accepted edits), and the "compactness wins" lesson. canon's `optimize` skill and `/canon:optimize` command are an original implementation of that pattern, extended to context files in [`docs/specs/06-optimize-context-files.md`](docs/specs/06-optimize-context-files.md).
+
+### Autobrowse (Browserbase) — the basis for `graduate-skill`
+
+- Autobrowse, created by Shubhankar ([@_shubhankar](https://x.com/_shubhankar)) and written up by Kyle Jeong ([@kylejeong](https://x.com/kylejeong)) of Browserbase ([@browserbase](https://x.com/browserbase)).
+
+What canon takes from it: the "iterate on a real task until it converges, then graduate the winning approach into a durable, reusable skill" loop. canon's `graduate-skill` ([`docs/specs/05-autobrowse-skill-graduation.md`](docs/specs/05-autobrowse-skill-graduation.md)) is an original implementation with an explicit Browserbase-compatibility path — if Autobrowse is present, canon defers to it rather than duplicating it.
+
+---
+
 ## The agentic-program-strategies vault
 
 The synthesis that produced canon came from a vault of agent-tooling notes maintained at [github.com/Orthogon-AI-Labs](https://github.com/Orthogon-AI-Labs). The relevant source files were:
@@ -92,7 +111,7 @@ See `synthesis-and-ideas.md` in that vault for the full reading.
 The pieces above are the prior art. What's new here:
 
 - A single-command bootstrap that installs all four components (canon's persistence layer, Compound Engineering, /last30days, and the auto-write hooks) and wires them together
-- The `hooks.json` discipline: `SessionStart` reads MEMORY.md + ERRORS.md into context; `Stop` writes to MEMORY.md when work substantial enough to log lands; `UserPromptSubmit` invokes `errors-check` in read mode silently before approaches are suggested
+- The `hooks.json` discipline: `SessionStart` reads MEMORY.md + ERRORS.md into context; `Stop` *proposes* a MEMORY.md entry for confirmation when work substantial enough to log lands (silent-append is an opt-in); `UserPromptSubmit` invokes `errors-check` in read mode silently before approaches are suggested
 - The three CLAUDE.md template sizes (minimal / standard / full) so the user picks the ramp that fits the project's maturity
 - The errors-check two-way pattern: silent read on UserPromptSubmit, write on user phrasing
 - The auto-install opt-out flags so users who want the persistence layer without the install side effects can decline

@@ -6,6 +6,8 @@ The rule is simple: eval first, patch narrowly, validate, and keep only strict i
 
 ## Eval Files
 
+> The bare `hooks/scripts/...` and `templates/...` paths below assume you're working inside the canon repo. When canon is installed as a plugin, use the `/canon:eval` and `/canon:optimize` commands — they resolve the bundled runner and template via `${CLAUDE_PLUGIN_ROOT}`.
+
 Start from:
 
 ```bash

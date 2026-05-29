@@ -9,6 +9,7 @@
 - Added a dependency-free `fixtures/evals/toy-email.json` and documented the PyYAML requirement for YAML evals.
 - README: added a "Supported runtimes" table and a "Skill lifecycle" section, corrected the hook list to four hooks, and fixed the `AGENTS-codex.md` reference.
 - Reconciled spec 04 with the Codex reference implementation (template naming, smoke-test guidance).
+- Fixed bundled-resource path resolution: `/canon:*` command and skill bodies now reference the protected-section checker, eval runner, scaffolder, and templates via `${CLAUDE_PLUGIN_ROOT}/...` so they resolve when canon is installed as a plugin (not only from a repo checkout). Docs note that bare paths assume the canon repo.
 
 ## 0.4.0 - 2026-05-28
 

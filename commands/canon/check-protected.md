@@ -17,7 +17,7 @@ The user invoked:
 Run the checker from the repository root:
 
 ```bash
-python3 hooks/scripts/check-protected-sections.py $ARGUMENTS
+python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py $ARGUMENTS
 ```
 
 If this command is running in a Codex-installed workspace where the checker lives under `.canon/codex/bin/`, use:

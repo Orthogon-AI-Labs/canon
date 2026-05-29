@@ -83,12 +83,12 @@ Anything a new port does differently from the Codex port is fine — but anythin
 
 A new port lands when:
 
-1. A persistence-file template exists at `templates/<RUNTIME>-canon.md` (or equivalent) that satisfies the six required instructions above.
+1. A persistence-file template exists under `templates/` that satisfies the six required instructions above. Name it after the runtime's persistence file plus the runtime — the Codex reference uses `templates/AGENTS-codex.md` (Codex reads `AGENTS.md`); a Hermes port would ship `templates/SOUL-hermes.md`, an Aider port `templates/CONVENTIONS-aider.md`, and so on.
 2. An install script at `scripts/install-<runtime>.sh` (or a `bin/canon` subcommand) implements `init` and `doctor` with collision-safe writes.
 3. The three core skills (`look-back`, `protected-sections`, `optimize`) are adapted to the runtime's skill format and ship under `ports/<runtime>/`.
 4. A `ports/<runtime>/README.md` explains the install path, the runtime-specific differences, and any limitations vs the Claude Code reference.
 5. The main canon README's runtime mapping table includes the new port.
-6. The PR includes a basic smoke test (manual fixtures fine — see Codex port's `tmp/codex-port-*` for shape).
+6. The PR includes a basic smoke test. Manual is fine: run the installer's `init` then `doctor` against an empty target repo, an existing-conflict repo, and a `--force` override case, and paste the output — the Codex installer at `scripts/install-codex.sh` is the model for what `doctor` should assert.
 
 ## Wanted ports
 
@@ -103,7 +103,7 @@ If you want to ship one of these, see **Contributing a port** below.
 
 ## Contributing a port
 
-1. Open a GitHub issue at [orthogon-ai-labs/canon](https://github.com/orthogon-ai-labs/canon) titled `Port: <runtime>` to coordinate.
+1. Open a GitHub issue at [Orthogon-AI-Labs/canon](https://github.com/Orthogon-AI-Labs/canon) titled `Port: <runtime>` to coordinate.
 2. Mirror the Codex port structure (templates, scripts, ports/<runtime>/, ports/<runtime>/README.md).
 3. Add your runtime to the persistence-file mapping table in this spec.
 4. Submit the PR with a smoke-test demonstration showing `init` + `doctor` against an empty target repo, an existing-conflict repo, and a force-override case.

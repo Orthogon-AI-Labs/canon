@@ -6,11 +6,11 @@
 
 ## Andrej Karpathy — CLAUDE.md / MEMORY.md / ERRORS.md pattern
 
-The three-file persistence pattern at the heart of canon is Karpathy's. The viral thread that established it reported coding accuracy moving from roughly 65% to roughly 94% with the four-line minimum `CLAUDE.md` alone. The 21-rule template shipped in `templates/CLAUDE-full.md` is a direct adaptation.
+The three-file persistence pattern at the heart of canon is Karpathy's. The viral thread that established it reported coding accuracy moving from roughly 65% to roughly 94% with the four-line minimum `CLAUDE.md` alone. The full template shipped in `templates/CLAUDE-full.md` is a direct adaptation.
 
 What canon uses:
 - The three-file structure (`CLAUDE.md` for behavior, `MEMORY.md` for decisions, `ERRORS.md` for failures)
-- The four-rule minimum and the 21-rule maximum
+- The four-rule minimum and the full template maximum
 - The "session end → append to MEMORY.md" discipline
 
 What canon adds:
@@ -77,9 +77,9 @@ Mervin's other relevant work: [PraisonAI](https://docs.praison.ai) (agent framew
 
 ## The agentic-program-strategies vault
 
-The synthesis that produced canon came from a vault of agent-tooling notes maintained at [github.com/orthogon-ai-labs](https://github.com/orthogon-ai-labs). The relevant source files were:
+The synthesis that produced canon came from a vault of agent-tooling notes maintained at [github.com/Orthogon-AI-Labs](https://github.com/Orthogon-AI-Labs). The relevant source files were:
 
-- *Karoathsynrules* — the viral 21-rule CLAUDE.md thread captured in full
+- *Karoathsynrules* — the viral CLAUDE.md rules thread captured in full
 - *Karpathys knowledge base* / *Karpathy llm wiki* / *How to make karpathys system* — Karpathy's three-layer knowledge-base pattern, of which the CLAUDE.md trio is the simplest case
 - *Productivity Tools and Claude Code Hacks* — notes on Compound Engineering's `/ce:plan` + `/ce:work` workflow
 

@@ -173,12 +173,18 @@ install_bin() {
   local bin_root="$target_root/.canon/codex/bin"
   if [[ "$dry_run" -eq 1 ]]; then
     echo "dry-run: would write .canon/codex/bin/check-protected-sections.py"
+    echo "dry-run: would write .canon/codex/bin/canon-eval.py"
+    echo "dry-run: would write .canon/codex/bin/canon-eval.sh"
     return
   fi
   mkdir -p "$bin_root"
   cp "$source_root/hooks/scripts/check-protected-sections.py" "$bin_root/check-protected-sections.py"
-  chmod +x "$bin_root/check-protected-sections.py"
+  cp "$source_root/hooks/scripts/canon-eval.py" "$bin_root/canon-eval.py"
+  cp "$source_root/hooks/scripts/canon-eval.sh" "$bin_root/canon-eval.sh"
+  chmod +x "$bin_root/check-protected-sections.py" "$bin_root/canon-eval.py" "$bin_root/canon-eval.sh"
   echo "write: .canon/codex/bin/check-protected-sections.py"
+  echo "write: .canon/codex/bin/canon-eval.py"
+  echo "write: .canon/codex/bin/canon-eval.sh"
 }
 
 init_codex() {
@@ -229,6 +235,7 @@ doctor_codex() {
   check_file "$target_root/MEMORY.md" "MEMORY.md" || failed=1
   check_file "$target_root/ERRORS.md" "ERRORS.md" || failed=1
   check_file "$target_root/.canon/codex/bin/check-protected-sections.py" "protected-section checker" || failed=1
+  check_file "$target_root/.canon/codex/bin/canon-eval.sh" "eval runner" || failed=1
   check_file "$target_root/.canon/codex/skills/look-back/SKILL.md" "look-back skill" || failed=1
   check_file "$target_root/.canon/codex/skills/protected-sections/SKILL.md" "protected-sections skill" || failed=1
   check_file "$target_root/.canon/codex/skills/optimize/SKILL.md" "optimize skill" || failed=1

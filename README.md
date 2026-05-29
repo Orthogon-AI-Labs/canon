@@ -26,13 +26,14 @@ MEMORY.md auto-updates  → persist (via canon's Stop hook)
 The four pieces above are the prior art. canon is the glue:
 
 - **One-command bootstrap** that installs Compound Engineering and `/last30days`, writes the persistence trio at the project root, and wires up the hooks — all in one go. You can opt out of any sub-install.
-- **Hooks that keep the persistence layer fresh** — `SessionStart` reads MEMORY.md and ERRORS.md into context automatically; `Stop` writes to MEMORY.md when work substantial enough to log lands; `UserPromptSubmit` runs `errors-check` silently before approaches are suggested.
-- **Three CLAUDE.md template sizes** — `minimal` (Karpathy's 4-line core), `standard` (recommended — 4 rules + stack lock + voice + persistence pointers), `full` (the complete 21-rule template) — so the file fits the project's maturity.
+- **Hooks that keep the persistence layer fresh** — `SessionStart` reads MEMORY.md and ERRORS.md into context automatically; `Stop` writes to MEMORY.md when work substantial enough to log lands *and* a second `Stop` hook checks protected sections after edits; `UserPromptSubmit` runs `errors-check` silently before approaches are suggested.
+- **Three CLAUDE.md template sizes** — `minimal` (Karpathy's 4-line core), `standard` (recommended — 4 rules + stack lock + voice + persistence pointers), `full` (the complete rule set) — so the file fits the project's maturity.
 - **The errors-check two-way pattern** — silent read on every implementation-shaped prompt before approaches are suggested, explicit write on "log this failure" phrasing. Stops the agent from re-proposing approaches you already ruled out.
 - **The look-back workflow** — mines recent memory, errors, sessions, and git history for repeated work that should become a skill, subagent, automation proposal, or extension.
 - **An experimental Codex port** — `AGENTS.md`, portable skill docs, a no-hooks install path, and a `doctor` check for Codex workspaces.
 - **Protected Markdown sections** — a shared marker convention and checker that flags accidental edits to slow lessons.
 - **The optimize alpha** — eval-first, bounded skill edits that preserve protected sections and keep only strict validation improvements.
+- **Skill graduation** — turns repeated browser/task traces into a durable `SKILL.md` by iterating a `strategy.md` one bounded change at a time until the task converges.
 - **The opt-out flags** — if you want the persistence half without the auto-installs, every sub-install can be declined and you still get the full canon experience minus the planning/research wiring.
 
 That's it. canon is intentionally small — under 1,000 lines of shell, Markdown, and JSON. The intelligence is in the upstream work; canon's job is to compose it cleanly and keep it from going stale.
@@ -55,7 +56,7 @@ The packaging is what canon adds. The curation is what made the four the right f
 /plugin install /path/to/canon.plugin
 
 # Or via a marketplace
-/plugin marketplace add orthogon-ai-labs/canon
+/plugin marketplace add Orthogon-AI-Labs/canon
 /plugin install canon
 ```
 
@@ -88,16 +89,25 @@ The Codex path writes `AGENTS.md`, `MEMORY.md`, `ERRORS.md`, portable skill docs
 
 Use `--dry-run` to preview the install before writing or replacing files.
 
+## Supported runtimes
+
+| Runtime | Status | Persistence file | Install |
+|---|---|---|---|
+| Claude Code | Native | `CLAUDE.md` | `/plugin install canon`, then `set up canon in this folder` |
+| Codex (OpenAI) | Experimental | `AGENTS.md` | `scripts/install-codex.sh init --runtime codex --root <path>` |
+
+New ports land here once they follow [`docs/specs/04-porting-canon.md`](docs/specs/04-porting-canon.md). Hermes, OpenCode, Cursor, and Aider are the wanted next ports below.
+
 ## Wanted: ports
 
 canon ships natively on Claude Code and experimentally on Codex. Other agent runtimes are wanted next ports. The model for adding a new runtime is documented in [`docs/specs/04-porting-canon.md`](docs/specs/04-porting-canon.md) — every port needs a persistence-file template, an install script with collision-safe writes, and a skill-format adaptation layer.
 
 - **Hermes** (Nous Research, Python-native) — uses `SOUL.md` as the persistence file with five execution backends. Distinct community from Anthropic's. Likely the second-most-interesting port after Codex.
 - **OpenCode** (Claude-Code-style OSS fork) — install path is structurally similar to Claude Code's plugin model. Likely the **lowest-effort port** of any major runtime. Good first contribution.
-- **Cursor** — newer versions read `AGENTS.md` and could likely reuse the Codex `AGENTS-canon.md` template. Largest install base of any runtime listed here.
+- **Cursor** — newer versions read `AGENTS.md` and could likely reuse the Codex `AGENTS-codex.md` template. Largest install base of any runtime listed here.
 - **Aider** — reads `CONVENTIONS.md` via the `--read` flag. Smaller but technical user base; canon's discipline should land cleanly.
 
-If you want to ship a port: open an issue at [orthogon-ai-labs/canon](https://github.com/orthogon-ai-labs/canon) titled `Port: <runtime>` to coordinate, then follow the structure in spec 04. The Codex port at `ports/codex/` is the reference implementation — mirror its shape.
+If you want to ship a port: open an issue at [Orthogon-AI-Labs/canon](https://github.com/Orthogon-AI-Labs/canon) titled `Port: <runtime>` to coordinate, then follow the structure in spec 04. The Codex port at `ports/codex/` is the reference implementation — mirror its shape.
 
 ## Using protected sections
 
@@ -143,9 +153,22 @@ python3 hooks/scripts/check-protected-sections.py
 
 Runs from the repo root. Exits 0 if every protected block is intact, exits 1 with the file and block name if anything was modified. The `protected-sections` skill also wraps this with conversational triggers ("check protected sections," "did anything touch the protected blocks").
 
+## The skill lifecycle
+
+canon's four workflow skills compose into a lifecycle for the skills *you* build:
+
+```
+look-back        → discover what repeated work should become a skill
+graduate-skill   → create a new skill from lived task traces
+protected-sections → lock the hard-won invariants so they don't rot
+optimize         → tighten the skill against an eval, strict improvements only
+```
+
+`look-back` and `graduate-skill` make new assets; `protected-sections` and `optimize` keep them sharp. See [`docs/graduation.md`](docs/graduation.md) for the graduation loop and [`docs/optimize.md`](docs/optimize.md) for the eval loop.
+
 ## What's in the plugin
 
-**Six skills:**
+**Seven skills:**
 
 - `canon-init` — the bootstrap above. Triggers on phrases like "set up canon", "set up CLAUDE.md", "initialize project memory", "bootstrap claude.md".
 - `decision-log` — appends decision entries and session summaries to MEMORY.md. Triggers on "log this decision", "remember this choice", "session end", "wrapping up". Pulls content from conversation history rather than re-asking.
@@ -153,27 +176,31 @@ Runs from the repo root. Exits 0 if every protected block is intact, exits 1 wit
 - `look-back` — reviews recent work and proposes reusable skills, subagents, automations, extensions, or skips with evidence.
 - `protected-sections` — wraps and checks protected Markdown blocks so important invariants are not overwritten by accident.
 - `optimize` — runs the alpha skill optimization loop: eval baseline, patch narrowly, validate, preserve protected sections, and report the result.
+- `graduate-skill` — turns repeated browser/task traces into a durable `SKILL.md`: scaffold a task, iterate `strategy.md` one bounded change at a time, converge, then graduate a self-contained skill with gotchas and failure recovery.
 
-**Three hooks:**
+**Four hooks across three lifecycle events:**
 
 - `SessionStart` — reads MEMORY.md and ERRORS.md from the project root into context at the start of every session.
-- `Stop` — when a response completes a unit of work substantial enough to log, automatically invokes `decision-log`. Conservative — won't write for trivial responses.
+- `Stop` (decision-log) — when a response completes a unit of work substantial enough to log, automatically invokes `decision-log`. Conservative — won't write for trivial responses.
+- `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree) and flags any touched protected block.
 - `UserPromptSubmit` — for implementation-shaped requests, silently invokes `errors-check` in read mode before any approach is proposed.
 
 **Templates:**
 
 - `CLAUDE-minimal.md` — Karpathy's four rules + stack + persistence pointers. ~5 minute setup.
 - `CLAUDE-standard.md` — minimal plus stack lock, voice rules, scope discipline. ~30 minute setup. **Recommended starter.**
-- `CLAUDE-full.md` — the complete 21-rule template. ~2 hour setup.
+- `CLAUDE-full.md` — the complete rule set. ~2 hour setup.
 - `AGENTS-codex.md` — Codex workspace instructions that make memory/error discipline explicit without hooks.
 - `eval.yaml` — starter eval file for `canon optimize`.
+- `graduation-task.md` / `graduated-skill.md` — starters for `graduate-skill` (the task definition and the final self-contained skill).
 - `MEMORY.md` / `ERRORS.md` — empty starters with the expected format and threshold rules.
 
 **Script helpers:**
 
 - `hooks/scripts/check-protected-sections.py` — checks changed Markdown files against protected blocks in `HEAD`.
 - `hooks/scripts/canon-eval.sh` — runs the alpha eval format used by `optimize`.
-- `fixtures/` — small manual fixtures for protected-section checks, look-back evidence, and toy optimize evals.
+- `scripts/graduation/scaffold.sh` — scaffolds a `graduate-skill` workspace (collision-safe; supports `--root`, `--force`, `--dry-run`).
+- `fixtures/` — small manual fixtures for protected-section checks, look-back evidence, toy optimize evals, and skill graduation.
 
 **Codex port:**
 
@@ -189,8 +216,8 @@ Runs from the repo root. Exits 0 if every protected block is intact, exits 1 wit
 - **Disable hooks** by editing `hooks/hooks.json` — set the matcher to a value that never matches, or remove the entry entirely. The skills still work without hooks; they'll just trigger on user phrasing instead of automatically.
 - **Tune the Stop hook's conservativeness** in `hooks/hooks.json` — the prompt explicitly tells the hook to be conservative; loosen or tighten the threshold language to taste.
 - **Add new protected sections** anywhere in your Markdown — see the [Using protected sections](#using-protected-sections) section above for the marker syntax and workflow.
-- **Evaluate a skill** by copying `templates/eval.yaml`, filling in deterministic tasks, and running `hooks/scripts/canon-eval.sh evals/<skill>.yaml`.
-- **Try the shipped toy eval** with `hooks/scripts/canon-eval.sh fixtures/evals/toy-email.yaml`.
+- **Evaluate a skill** by copying `templates/eval.yaml`, filling in deterministic tasks, and running `hooks/scripts/canon-eval.sh evals/<skill>.yaml`. YAML eval files require PyYAML; a `.json` eval with the same structure runs with no extra dependency.
+- **Try the shipped toy eval** with `hooks/scripts/canon-eval.sh fixtures/evals/toy-email.yaml` (or the dependency-free `fixtures/evals/toy-email.json`). Either scores `2/2`.
 
 ## Honest limitations
 
@@ -198,18 +225,18 @@ Runs from the repo root. Exits 0 if every protected block is intact, exits 1 wit
 - **Codex support is explicit rather than automatic.** The Codex port uses `AGENTS.md`, portable skill docs, and manual/doctor checks instead of Claude hook events.
 - **MEMORY.md goes stale if you don't ship.** The Stop hook only writes when work substantial enough to log lands. If you spend a week noodling without finishing anything, MEMORY.md won't get richer.
 - **ERRORS.md read-mode quality is bounded by semantic match.** A failure logged as "auth flow keeps redirecting" might not get matched against a new prompt about "session cookies." For high-stakes projects, periodically read ERRORS.md yourself.
-- **The four-line minimum is enough for most projects.** The full 21-rule template helps mature codebases; on a fresh repo it's overkill.
+- **The four-line minimum is enough for most projects.** The full template helps mature codebases; on a fresh repo it's overkill.
 
 ## Credits
 
 canon is glue. The intelligence is in the upstream work, credited inline above and in detail in [CREDITS.md](CREDITS.md):
 
-- **Andrej Karpathy** — `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` pattern and the 21-rule template
+- **Andrej Karpathy** — `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` pattern and the full CLAUDE.md template
 - **Every Inc** — [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) (`/ce:plan` + `/ce:work`)
 - **Matt Van Horn** — [/last30days](https://github.com/mvanhorn/last30days-skill) research skill
 - **Mervin Praison** — [Codex meta-prompt](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (the basis for canon's `look-back` skill)
 
-The synthesis came from the [agentic-program-strategies vault](https://github.com/orthogon-ai-labs).
+The synthesis came from the [agentic-program-strategies vault](https://github.com/Orthogon-AI-Labs).
 
 ## License
 
@@ -217,10 +244,10 @@ MIT. See [LICENSE](LICENSE).
 
 ## Part of the agent reliability toolkit
 
-canon is one of three pieces published by [Orthogon AI Labs](https://github.com/orthogon-ai-labs):
+canon is one of three pieces published by [Orthogon AI Labs](https://github.com/Orthogon-AI-Labs):
 
 - **canon** *(this plugin)* — the canonical setup for Claude Code projects
-- **[agent-verify](https://github.com/orthogon-ai-labs/agent-verify)** — claim verification; catches when your agent says it ran tests / deployed / merged but didn't
+- **[agent-verify](https://github.com/Orthogon-AI-Labs/agent-verify)** — claim verification; catches when your agent says it ran tests / deployed / merged but didn't
 - **[ShelfAI Pro](https://shelfai.ai)** *(commercial)* — team and enterprise governance: tenant isolation, audit export, policy enforcement, staged change control, and a dashboard for the proposal lifecycle
 
 Each piece installs independently. They compose: MEMORY.md can record agent-verify's catches, and ShelfAI Pro aggregates both layers across an org.

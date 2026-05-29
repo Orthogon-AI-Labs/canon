@@ -21,7 +21,7 @@ Trigger this skill when the user:
 
 - Starts a new project that will see repeated Claude Code or Cowork sessions
 - Wants to stop re-explaining context every session
-- References Karpathy's CLAUDE.md, the 21-rule template, or the MEMORY.md / ERRORS.md trio
+- References Karpathy's CLAUDE.md, the full CLAUDE.md template, or the MEMORY.md / ERRORS.md trio
 - Asks how to make Claude remember decisions across sessions
 - Wants the persistence half of the Compound Engineering loop
 
@@ -32,7 +32,7 @@ Trigger this skill when the user:
 Before writing any files, ask the user:
 
 - Which directory is the project root (default: current working directory)
-- Which CLAUDE.md size: **minimal** (Karpathy's 4-line core, fastest setup), **standard** (recommended — 4 rules + decision log + tech stack lock, ~30 min setup), or **full** (the 21-rule template, ~2 hr setup)
+- Which CLAUDE.md size: **minimal** (Karpathy's 4-line core, fastest setup), **standard** (recommended — 4 rules + decision log + tech stack lock, ~30 min setup), or **full** (the complete template, ~2 hr setup)
 - Whether to also wire up the auto-write hooks (defaults to yes — the hooks are what keep MEMORY.md from going stale)
 - Whether to also install **Compound Engineering** (defaults to yes — it is the planning half of the loop this plugin is the persistence half of)
 - Whether to also install **/last30days** (defaults to yes — it is the research step that grounds `/ce:plan` in current community knowledge instead of stale training data)
@@ -118,7 +118,7 @@ Use templates in `${CLAUDE_PLUGIN_ROOT}/templates/`:
 
 - `CLAUDE-minimal.md` — Karpathy's 4 viral rules only
 - `CLAUDE-standard.md` — 4 rules + stack lock + MEMORY/ERRORS pointers + voice rules
-- `CLAUDE-full.md` — the full 21-rule template from the viral thread
+- `CLAUDE-full.md` — the full template from the viral thread
 - `MEMORY.md` — empty decision log with the expected section headers
 - `ERRORS.md` — empty failure log with the expected section headers
 

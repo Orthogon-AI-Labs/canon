@@ -23,7 +23,13 @@ Run the toy eval from the repository root:
 hooks/scripts/canon-eval.sh fixtures/evals/toy-email.yaml
 ```
 
-Expected score:
+The YAML variant requires PyYAML. If PyYAML isn't installed, run the dependency-free JSON variant instead:
+
+```bash
+hooks/scripts/canon-eval.sh fixtures/evals/toy-email.json
+```
+
+Expected score (either variant):
 
 ```text
 score: 2/2

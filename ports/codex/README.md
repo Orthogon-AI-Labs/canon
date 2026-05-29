@@ -7,6 +7,7 @@ The Codex port gives a workspace the canon persistence pattern without Claude Co
 - `ERRORS.md` records failed approaches worth avoiding.
 - `.canon/codex/skills/` stores portable canon skill docs.
 - `.canon/codex/bin/check-protected-sections.py` verifies protected Markdown blocks.
+- `.canon/codex/bin/canon-eval.sh` runs the alpha eval format used by the optimize workflow.
 
 ## Install
 
@@ -52,6 +53,7 @@ Doctor checks:
 - `MEMORY.md` exists.
 - `ERRORS.md` exists.
 - protected-section checker is installed.
+- eval runner is installed.
 - portable skill docs are installed.
 - no unresolved `{{...}}` template placeholders remain in the main files.
 

@@ -20,7 +20,7 @@ Require a target skill path and an explicit eval file:
 <skill-path> --eval <eval-file>
 ```
 
-If `--eval` is missing, refuse to optimize and explain that `canon optimize` never runs without an eval file. Offer `templates/eval.yaml` as the starter.
+If `--eval` is missing, refuse to optimize and explain that `canon optimize` never runs without an eval file. Offer `${CLAUDE_PLUGIN_ROOT}/templates/eval.yaml` as the starter.
 
 When both inputs exist, follow the `optimize` skill exactly:
 

@@ -151,7 +151,7 @@ The `name="..."` is yours to pick — make it descriptive (`stack-lock`, `voice-
 python3 hooks/scripts/check-protected-sections.py
 ```
 
-Runs from the repo root. Exits 0 if every protected block is intact, exits 1 with the file and block name if anything was modified. The `protected-sections` skill also wraps this with conversational triggers ("check protected sections," "did anything touch the protected blocks").
+Runs from the repo root. Exits 0 if every protected block is intact, exits 1 with the file and block name if anything was modified. (This bare path assumes you're working inside the canon repo. When canon is installed as a plugin, use the `/canon:check-protected` command instead — it resolves the bundled checker via `${CLAUDE_PLUGIN_ROOT}`.) The `protected-sections` skill also wraps this with conversational triggers ("check protected sections," "did anything touch the protected blocks").
 
 ## The skill lifecycle
 

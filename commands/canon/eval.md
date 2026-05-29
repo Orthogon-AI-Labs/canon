@@ -19,7 +19,7 @@ Resolve the eval target as follows:
 1. If `$ARGUMENTS` names an existing `.yaml`, `.yml`, or `.json` eval file, run:
 
    ```bash
-   hooks/scripts/canon-eval.sh <eval-file>
+   ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/canon-eval.sh <eval-file>
    ```
 
 2. If `$ARGUMENTS` names a skill path, derive the skill slug from the path and look for:
@@ -34,7 +34,7 @@ Resolve the eval target as follows:
 3. If no eval file exists, refuse to run and tell the user to create one from:
 
    ```text
-   templates/eval.yaml
+   ${CLAUDE_PLUGIN_ROOT}/templates/eval.yaml
    ```
 
 Do not invent an eval silently. Running an eval is read-only except for normal shell/cache artifacts.

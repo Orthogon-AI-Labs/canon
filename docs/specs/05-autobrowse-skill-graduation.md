@@ -1,5 +1,7 @@
 # Spec 05: Autobrowse-Style Skill Graduation
 
+> Inspired by **Autobrowse** (Browserbase) — created by Shubhankar ([@_shubhankar](https://x.com/_shubhankar)), written up by Kyle Jeong ([@kylejeong](https://x.com/kylejeong)). Original implementation with a Browserbase-compatibility path, not bundled code. See `CREDITS.md` → Inspirations.
+
 ## One-Liner
 
 Add a canon workflow for turning repeated browser/task traces into durable skills: define task, run, inspect trace, update `strategy.md`, iterate, converge, graduate `SKILL.md`.

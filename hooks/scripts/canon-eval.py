@@ -154,6 +154,23 @@ def grade_task(root: Path, skill_path: str | None, task: dict[str, Any]) -> tupl
             else:
                 failures.extend(f"{task_id}: {failure}" for failure in validate_json_schema(parsed, schema))
 
+    # Deterministic size budget. Used by `canon optimize <context-file>` to prove
+    # a prune cut cost (char count is a stable, dependency-free proxy for tokens).
+    # Pair with a `command` that runs the project's own tests to confirm behavior held.
+    if "max_chars" in expected:
+        limit = expected["max_chars"]
+        if not isinstance(limit, int) or isinstance(limit, bool):
+            failures.append(f"{task_id}: max_chars must be an integer")
+        elif len(text) > limit:
+            failures.append(f"{task_id}: output is {len(text)} chars, over max_chars {limit}")
+
+    if "min_chars" in expected:
+        floor = expected["min_chars"]
+        if not isinstance(floor, int) or isinstance(floor, bool):
+            failures.append(f"{task_id}: min_chars must be an integer")
+        elif len(text) < floor:
+            failures.append(f"{task_id}: output is {len(text)} chars, under min_chars {floor}")
+
     return len(failures) == 0, failures
 
 

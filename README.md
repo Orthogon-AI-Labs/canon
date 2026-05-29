@@ -8,7 +8,7 @@ One command installs three pieces of community work and wires them together as o
 
 | Piece | Source | Role |
 |---|---|---|
-| `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio | [Karpathy](https://x.com/karpathy) | Behavioral spec + decision log + failure log. The viral thread reports coding accuracy ~65% → ~94% with the four-line minimum `CLAUDE.md` alone. |
+| `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio | [Karpathy](https://x.com/karpathy) | Behavioral spec + decision log + failure log. A small, human-written context file the agent reads at task start. |
 | `/ce:plan` + `/ce:work` | [Every Inc — Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | Parallel research agents produce a structured plan; execution ticks off acceptance criteria. |
 | `/last30days` | [Matt Van Horn](https://github.com/mvanhorn/last30days-skill) | Parallel community-knowledge search across Reddit / HN / Polymarket / GitHub / X / YouTube / TikTok / Instagram / Bluesky / open web — grounds `/ce:plan` in fresh source material. Most sources free; ScrapeCreators key unlocks paid platforms. |
 
@@ -21,13 +21,19 @@ The canonical loop is **research → plan → execute → persist**:
 MEMORY.md auto-updates  → persist (via canon's Stop hook)
 ```
 
+## What the evidence says
+
+canon's claim is deliberately narrow: **a small, human-written context file helps a little; a large, machine-generated one hurts and costs more.** That's not a slogan — it's the finding of the only rigorous study to date. ETH Zurich's *Evaluating AGENTS.md: Are Repository-Level Context Files Helpful for Coding Agents?* ([arXiv 2602.11988](https://arxiv.org/abs/2602.11988), 2026) tested four coding agents across 438 tasks under three conditions — no context file, an LLM-generated one, and a developer-written one. Developer-written files gave a modest real gain (~+4% on their benchmark). LLM-generated files *reduced* task success in 5 of 8 settings (~−3% vs no file at all) and pushed inference cost up by over 20%. Removing an "Architecture"/overview section, keeping only commands, constraints, and non-standard patterns, produced the same behavior at a lower token budget.
+
+So canon optimizes for the version that works: keep context files **small, human-authored, and pruned**. The persistence trio is a human-curated log, not an auto-generated dump; the `Stop` hook **proposes** memory entries for you to confirm rather than writing them silently; and `optimize` can prune a context file and prove against an eval that the cut reduced cost without regressing behavior. canon's job is to keep you on the right side of that line — not to make a context file as big as possible.
+
 ## What canon adds
 
 The four pieces above are the prior art. canon is the glue:
 
 - **One-command bootstrap** that installs Compound Engineering and `/last30days`, writes the persistence trio at the project root, and wires up the hooks — all in one go. You can opt out of any sub-install.
-- **Hooks that keep the persistence layer fresh** — `SessionStart` reads MEMORY.md and ERRORS.md into context automatically; `Stop` writes to MEMORY.md when work substantial enough to log lands *and* a second `Stop` hook checks protected sections after edits; `UserPromptSubmit` runs `errors-check` silently before approaches are suggested.
-- **Three CLAUDE.md template sizes** — `minimal` (Karpathy's 4-line core), `standard` (recommended — 4 rules + stack lock + voice + persistence pointers), `full` (the complete rule set) — so the file fits the project's maturity.
+- **Hooks that keep the persistence layer fresh** — `SessionStart` reads MEMORY.md and ERRORS.md into context automatically; `Stop` *proposes* a MEMORY.md entry for you to confirm when work substantial enough to log lands (it no longer writes silently — see "What the evidence says") *and* a second `Stop` hook checks protected sections after edits; `UserPromptSubmit` runs `errors-check` silently before approaches are suggested.
+- **Lean CLAUDE.md templates plus a global-defaults starter** — `minimal` (Karpathy's 4-line core) and `standard` (recommended — rules + stack lock + voice + persistence pointers) keep only project facts; `full` is kept for users who want everything in one file but is **not** the default. Generic behavior preferences ship separately in `GLOBAL-defaults.md` for your `~/.claude` config, so you don't pay for them in every project's context on every task.
 - **The errors-check two-way pattern** — silent read on every implementation-shaped prompt before approaches are suggested, explicit write on "log this failure" phrasing. Stops the agent from re-proposing approaches you already ruled out.
 - **The look-back workflow** — mines recent memory, errors, sessions, and git history for repeated work that should become a skill, subagent, automation proposal, or extension.
 - **An experimental Codex port** — `AGENTS.md`, portable skill docs, a no-hooks install path, and a `doctor` check for Codex workspaces.
@@ -43,7 +49,7 @@ That's it. canon is intentionally small — under 1,000 lines of shell, Markdown
 canon's composition is not arbitrary. It is distilled from 225+ files of agent-tooling notes — X threads, Reddit posts, YouTube transcripts, GitHub READMEs, paper writeups, and Discord screenshots collected over months of reading what people actually do with agents.
 
 - `/last30days` made the cut over half a dozen other community-research tools because it had the strongest demonstrated signal across multiple independent creators.
-- Karpathy's `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio survived because the viral thread's accuracy claim held up across independent retests.
+- Karpathy's `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio survived because a small, human-written context file is the version of this pattern the evidence actually supports (see "What the evidence says" below).
 - The Compound Engineering `/ce:plan` + `/ce:work` loop was the only credible end-to-end planning + execution framework that didn't require its own runtime.
 - look-back came from Mervin Praison's meta-prompt because it was the cleanest formulation of the "mine your own sessions" pattern that recurred across roughly a dozen creators.
 
@@ -73,7 +79,7 @@ The init skill is the full bootstrap. It:
 3. **Installs `/last30days` for you** from `github.com/mvanhorn/last30days-skill`. Skipped if already installed; opt-out if you don't want it.
 4. Checks for existing `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` collisions
 5. Writes the three files to your project root
-6. Wires up the auto-write hooks (already in this plugin — no extra step)
+6. Wires up the hooks (already in this plugin — no extra step). The `Stop` memory hook proposes entries for confirmation by default; silent-append is an opt-in (see "Tune the Stop hook" below)
 7. Reports what got created and suggests `/last30days <topic>` → `/ce:plan <task>` → `/ce:work` to verify end-to-end
 
 ### Codex experimental install
@@ -164,7 +170,7 @@ protected-sections → lock the hard-won invariants so they don't rot
 optimize         → tighten the skill against an eval, strict improvements only
 ```
 
-`look-back` and `graduate-skill` make new assets; `protected-sections` and `optimize` keep them sharp. See [`docs/graduation.md`](docs/graduation.md) for the graduation loop and [`docs/optimize.md`](docs/optimize.md) for the eval loop.
+`look-back` and `graduate-skill` make new assets; `protected-sections` and `optimize` keep them sharp. `optimize` also prunes your **context files** (`CLAUDE.md` / `MEMORY.md`) toward minimal — proving against an eval that the cut reduced token cost without regressing behavior (see "What the evidence says"). See [`docs/graduation.md`](docs/graduation.md) for the graduation loop and [`docs/optimize.md`](docs/optimize.md) for the eval loop.
 
 ## What's in the plugin
 
@@ -181,15 +187,16 @@ optimize         → tighten the skill against an eval, strict improvements only
 **Four hooks across three lifecycle events:**
 
 - `SessionStart` — reads MEMORY.md and ERRORS.md from the project root into context at the start of every session.
-- `Stop` (decision-log) — when a response completes a unit of work substantial enough to log, automatically invokes `decision-log`. Conservative — won't write for trivial responses.
+- `Stop` (decision-log) — when a response completes a unit of work substantial enough to log, **drafts a MEMORY.md entry and surfaces it for confirmation** rather than writing silently. Writes only on your "log it". Conservative — won't propose for trivial responses. Silent-append is an opt-in (see "Tune the Stop hook").
 - `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree) and flags any touched protected block.
 - `UserPromptSubmit` — for implementation-shaped requests, silently invokes `errors-check` in read mode before any approach is proposed.
 
 **Templates:**
 
 - `CLAUDE-minimal.md` — Karpathy's four rules + stack + persistence pointers. ~5 minute setup.
-- `CLAUDE-standard.md` — minimal plus stack lock, voice rules, scope discipline. ~30 minute setup. **Recommended starter.**
-- `CLAUDE-full.md` — the complete rule set. ~2 hour setup.
+- `CLAUDE-standard.md` — minimal plus stack lock, voice rules, scope discipline (project facts only). ~30 minute setup. **Recommended starter.**
+- `CLAUDE-full.md` — the complete rule set in one project file. Kept for users who want it; **not the default** (most of it belongs in `GLOBAL-defaults.md`). ~2 hour setup.
+- `GLOBAL-defaults.md` — generic behavior preferences (response style, confirmation gates, step-by-step) for your global `~/.claude` config, not a project file. Set once, applies everywhere.
 - `AGENTS-codex.md` — Codex workspace instructions that make memory/error discipline explicit without hooks.
 - `eval.yaml` — starter eval file for `canon optimize`.
 - `graduation-task.md` / `graduated-skill.md` — starters for `graduate-skill` (the task definition and the final self-contained skill).
@@ -200,6 +207,7 @@ optimize         → tighten the skill against an eval, strict improvements only
 - `hooks/scripts/check-protected-sections.py` — checks changed Markdown files against protected blocks in `HEAD`.
 - `hooks/scripts/canon-eval.sh` — runs the alpha eval format used by `optimize`.
 - `scripts/graduation/scaffold.sh` — scaffolds a `graduate-skill` workspace (collision-safe; supports `--root`, `--force`, `--dry-run`).
+- `scripts/optimize/scaffold-context-eval.sh` — scaffolds a `canon optimize` eval for a context file (`CLAUDE.md` / `MEMORY.md` / `AGENTS.md`): a `max_chars` cost budget at the file's current size plus an optional behavior `command`. Collision-safe `--root` / `--force` / `--dry-run`.
 - `fixtures/` — small manual fixtures for protected-section checks, look-back evidence, toy optimize evals, and skill graduation.
 
 **Codex port:**
@@ -214,7 +222,7 @@ optimize         → tighten the skill against an eval, strict improvements only
 
 - **Add custom CLAUDE.md sections** by editing `templates/CLAUDE-standard.md` after install — your edits survive re-runs of the init skill, which always asks before overwriting.
 - **Disable hooks** by editing `hooks/hooks.json` — set the matcher to a value that never matches, or remove the entry entirely. The skills still work without hooks; they'll just trigger on user phrasing instead of automatically.
-- **Tune the Stop hook's conservativeness** in `hooks/hooks.json` — the prompt explicitly tells the hook to be conservative; loosen or tighten the threshold language to taste.
+- **Tune the Stop hook** in `hooks/hooks.json` — the prompt tells the hook to be conservative and to *propose* entries for confirmation rather than write silently. Loosen or tighten the threshold language to taste. To restore the old silent-append behavior, swap the "do NOT write yet / surface for confirmation" instruction for "invoke the decision-log skill to append" (the prompt notes exactly where).
 - **Add new protected sections** anywhere in your Markdown — see the [Using protected sections](#using-protected-sections) section above for the marker syntax and workflow.
 - **Evaluate a skill** by copying `templates/eval.yaml`, filling in deterministic tasks, and running `hooks/scripts/canon-eval.sh evals/<skill>.yaml`. YAML eval files require PyYAML; a `.json` eval with the same structure runs with no extra dependency.
 - **Try the shipped toy eval** with `hooks/scripts/canon-eval.sh fixtures/evals/toy-email.yaml` (or the dependency-free `fixtures/evals/toy-email.json`). Either scores `2/2`.
@@ -235,6 +243,8 @@ canon is glue. The intelligence is in the upstream work, credited inline above a
 - **Every Inc** — [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) (`/ce:plan` + `/ce:work`)
 - **Matt Van Horn** — [/last30days](https://github.com/mvanhorn/last30days-skill) research skill
 - **Mervin Praison** — [Codex meta-prompt](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (the basis for canon's `look-back` skill)
+
+canon's `optimize` and `graduate-skill` are canon-original implementations *inspired by* (not bundled from) the **SkillOpt** pattern ([arXiv 2605.23904](https://arxiv.org/abs/2605.23904)) and Browserbase's **Autobrowse** respectively. See [CREDITS.md](CREDITS.md) → Inspirations.
 
 The synthesis came from the [agentic-program-strategies vault](https://github.com/Orthogon-AI-Labs).
 

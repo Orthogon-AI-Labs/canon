@@ -64,7 +64,7 @@ Use the look-back workflow when asked to mine recent work. Start with a shortlis
 
 Use the protected-sections workflow when asked to lock, inspect, or verify important Markdown blocks.
 
-Use the optimize workflow only when an eval exists or the user asks you to create one first. Preserve protected sections, use bounded edits, and accept only strict validation improvements.
+Use the optimize workflow only when an eval exists or the user asks you to create one first. Run evals with `.canon/codex/bin/canon-eval.sh <eval>.yaml` (use a `.json` eval to avoid the PyYAML dependency). Preserve protected sections, use bounded edits, and accept only strict validation improvements.
 
 ## Runtime Boundaries
 

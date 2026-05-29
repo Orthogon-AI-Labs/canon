@@ -30,10 +30,26 @@ Use this workflow when the user says things like:
 
 Refuse to optimize without an eval. Offer to draft the eval instead.
 
+## Script Helpers
+
+The Codex installer copies both tools into `.canon/codex/bin/`. Run an eval:
+
+```bash
+.canon/codex/bin/canon-eval.sh evals/<name>.yaml
+```
+
+YAML eval files need PyYAML; a `.json` eval file with the same structure runs with no extra dependency. The runner grades text — it does not execute a `SKILL.md` and does not enforce the `metric`/`threshold` fields. To measure a skill's behavior, point a task's `command:` at something that runs the skill; otherwise the eval grades a static fixture. You make the strict-improvement decision by comparing the two scores.
+
+Check protected sections:
+
+```bash
+python3 .canon/codex/bin/check-protected-sections.py
+```
+
 ## Workflow
 
 1. Read the target skill and eval file.
-2. Run the baseline eval.
+2. Run the baseline eval with `.canon/codex/bin/canon-eval.sh`.
 3. Check protected sections:
 
    ```bash

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 - 2026-05-29
+
+- Added the `graduate-skill` skill and `/canon:graduate-skill` command (spec 05): turn repeated browser/task traces into a durable, self-contained `SKILL.md` via a bounded `strategy.md` iteration loop, with a Browserbase-compatible trace path and a handoff to `/canon:optimize`.
+- Added `scripts/graduation/scaffold.sh` (collision-safe `--root` / `--force` / `--dry-run`), `templates/graduation-task.md`, `templates/graduated-skill.md`, `docs/graduation.md`, and the `fixtures/graduation/craigslist-like` smoke fixture.
+- Codex port now ships the eval runner: `install-codex.sh` copies `canon-eval.{sh,py}` into `.canon/codex/bin/`, `doctor` checks for it, and `SKILL-optimize.md` references it.
+- Documented that `canon-eval` is a grader, not a skill runner — `metric`/`threshold` are advisory and the strict-improvement gate is operator-judged (docs/optimize.md, skills/optimize/SKILL.md, templates/eval.yaml).
+- Added a dependency-free `fixtures/evals/toy-email.json` and documented the PyYAML requirement for YAML evals.
+- README: added a "Supported runtimes" table and a "Skill lifecycle" section, corrected the hook list to four hooks, and fixed the `AGENTS-codex.md` reference.
+- Reconciled spec 04 with the Codex reference implementation (template naming, smoke-test guidance).
+
 ## 0.4.0 - 2026-05-28
 
 - Added experimental Codex support with `AGENTS.md`, portable Codex skill docs, and `scripts/install-codex.sh init|install|doctor --runtime codex`.

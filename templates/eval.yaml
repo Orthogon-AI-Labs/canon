@@ -1,3 +1,9 @@
+# canon alpha eval. Replace the fixture paths below with your own.
+# NOTE: `metric` and `threshold` are advisory — the runner
+# (hooks/scripts/canon-eval.sh) does not enforce them. It grades each task and
+# prints a score: `command` output if present, otherwise the text of `input`.
+# To measure a skill's behavior, point `command` at something that runs the skill.
+# YAML needs PyYAML; copy this to a .json eval to run without that dependency.
 name: example-skill-eval
 skill: skills/example/SKILL.md
 metric: pass_rate

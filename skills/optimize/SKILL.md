@@ -51,6 +51,10 @@ Check protected sections:
 python3 hooks/scripts/check-protected-sections.py
 ```
 
+## How Validation Works (alpha)
+
+`canon-eval.sh` grades text; it does not run a `SKILL.md`. The `metric` and `threshold` fields in the eval file are advisory in this alpha — the runner does not enforce them. To measure a skill's actual behavior, a task's `command:` must run the skill and emit its output; otherwise the eval grades a static fixture and the score won't move when you edit the skill. You (or the agent) make the strict-improvement decision by comparing the baseline and validation scores. YAML eval files need PyYAML; a `.json` eval runs without it.
+
 ## Optimization Loop
 
 1. Load the target skill.

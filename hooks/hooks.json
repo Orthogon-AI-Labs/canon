@@ -17,7 +17,7 @@
       "hooks": [
         {
           "type": "prompt",
-          "prompt": "Check whether this response completed a unit of work substantial enough to log to MEMORY.md (a shipped feature, a resolved bug, a meaningful decision, an approach that took more than two attempts). If yes, invoke the decision-log skill to append a session entry to MEMORY.md at the project root. If the response was a one-line answer, a clarifying question, an interrupted thought, or trivial work, do nothing. Be conservative — frequent low-value writes destroy the signal-to-noise of MEMORY.md.",
+          "prompt": "Check whether this response completed a unit of work substantial enough to log to MEMORY.md (a shipped feature, a resolved bug, a meaningful decision, an approach that took more than two attempts). If yes, do NOT write to MEMORY.md yet — instead draft the one-block entry and surface it to the user with a short note like 'Worth logging to MEMORY.md? Reply \"log it\" to record this entry:' followed by the drafted block. Only invoke the decision-log skill to write once the user confirms. Rationale: an unconfirmed, model-generated memory entry becomes context the agent reads every future session, and machine-generated context measurably degrades agent performance; a human-confirmed entry does not. If the response was a one-line answer, a clarifying question, an interrupted thought, or trivial work, do nothing. Be conservative — frequent low-value proposals are noise. (To restore the old silent-append behavior, replace 'do NOT write yet / surface for confirmation' with 'invoke the decision-log skill to append' — see README, 'Tune the Stop hook'.)",
           "timeout": 30
         }
       ]

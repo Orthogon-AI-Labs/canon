@@ -28,3 +28,11 @@ tasks:
         type: object
         required:
           - status
+
+  # Size budget — deterministic proxy for token cost. Used by
+  # `canon optimize <context-file>` to prove a prune cut cost. Pair with a
+  # `command` task that runs your project's tests to confirm behavior held.
+  - id: under-budget
+    input: CLAUDE.md
+    expected:
+      max_chars: 4000

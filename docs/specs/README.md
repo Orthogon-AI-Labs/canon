@@ -10,5 +10,6 @@ Implementation specs for canon. Each spec is written as a codeplan-style slash-c
 4. `04-porting-canon.md` — the model for porting canon to any agent runtime, with the Codex port as reference implementation and Hermes / OpenCode / Cursor / Aider named as wanted next ports. **(shipped, v0.4.0)**
 5. `05-autobrowse-skill-graduation.md` — Autobrowse-style strategy iteration and skill graduation. **(shipped, v0.5.0)**
 6. `06-optimize-context-files.md` — extend `/canon:optimize` from skills to context files (`CLAUDE.md` / `MEMORY.md`): prune toward minimal, prove the cut against an eval. Implements the context-minimization plan. **(implemented — size grader, scaffold, and optimize context-file mode all shipped — v0.6)**
+7. `07-verify-suite-integration.md` — make `agent-verify` an opt-in `canon-init` install (compose, don't merge), document the combined Stop-hook behavior, and propose verify catches to `ERRORS.md`. **(spec'd, pending — v0.6)**
 
 The repositioning behind spec 06 is in [`../context-minimization-plan-2026-05-29.md`](../context-minimization-plan-2026-05-29.md).

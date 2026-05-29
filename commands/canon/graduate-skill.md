@@ -29,7 +29,7 @@ Steps:
 1. If the workspace does not exist, scaffold it:
 
    ```bash
-   scripts/graduation/scaffold.sh <task-name>
+   ${CLAUDE_PLUGIN_ROOT}/scripts/graduation/scaffold.sh <task-name>
    ```
 
 2. Follow the `graduate-skill` skill exactly: run/ingest a trace, write a per-iteration report, make **one** bounded `strategy.md` change, re-run, and stop on the convergence rule (passes 2 of last 3 runs, or `--iterations` reached with documented limitations).

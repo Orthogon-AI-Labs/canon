@@ -37,6 +37,17 @@ The four pieces above are the prior art. canon is the glue:
 
 That's it. canon is intentionally small — under 1,000 lines of shell, Markdown, and JSON. The intelligence is in the upstream work; canon's job is to compose it cleanly and keep it from going stale.
 
+## Why these four pieces
+
+canon's composition is not arbitrary. It is distilled from 225+ files of agent-tooling notes — X threads, Reddit posts, YouTube transcripts, GitHub READMEs, paper writeups, and Discord screenshots collected over months of reading what people actually do with agents.
+
+- `/last30days` made the cut over half a dozen other community-research tools because it had the strongest demonstrated signal across multiple independent creators.
+- Karpathy's `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio survived because the viral thread's accuracy claim held up across independent retests.
+- The Compound Engineering `/ce:plan` + `/ce:work` loop was the only credible end-to-end planning + execution framework that didn't require its own runtime.
+- look-back came from Mervin Praison's meta-prompt because it was the cleanest formulation of the "mine your own sessions" pattern that recurred across roughly a dozen creators.
+
+The packaging is what canon adds. The curation is what made the four the right four.
+
 ## Install
 
 ```bash
@@ -76,6 +87,17 @@ scripts/install-codex.sh doctor --runtime codex --root /path/to/project
 The Codex path writes `AGENTS.md`, `MEMORY.md`, `ERRORS.md`, portable skill docs under `.canon/codex/skills/`, and a protected-section checker under `.canon/codex/bin/`. Existing main files are skipped by default with append/replace guidance; pass `--force` only after reviewing the existing files.
 
 Use `--dry-run` to preview the install before writing or replacing files.
+
+## Wanted: ports
+
+canon ships natively on Claude Code and experimentally on Codex. Other agent runtimes are wanted next ports. The model for adding a new runtime is documented in [`docs/specs/04-porting-canon.md`](docs/specs/04-porting-canon.md) — every port needs a persistence-file template, an install script with collision-safe writes, and a skill-format adaptation layer.
+
+- **Hermes** (Nous Research, Python-native) — uses `SOUL.md` as the persistence file with five execution backends. Distinct community from Anthropic's. Likely the second-most-interesting port after Codex.
+- **OpenCode** (Claude-Code-style OSS fork) — install path is structurally similar to Claude Code's plugin model. Likely the **lowest-effort port** of any major runtime. Good first contribution.
+- **Cursor** — newer versions read `AGENTS.md` and could likely reuse the Codex `AGENTS-canon.md` template. Largest install base of any runtime listed here.
+- **Aider** — reads `CONVENTIONS.md` via the `--read` flag. Smaller but technical user base; canon's discipline should land cleanly.
+
+If you want to ship a port: open an issue at [orthogon-ai-labs/canon](https://github.com/orthogon-ai-labs/canon) titled `Port: <runtime>` to coordinate, then follow the structure in spec 04. The Codex port at `ports/codex/` is the reference implementation — mirror its shape.
 
 ## Using protected sections
 

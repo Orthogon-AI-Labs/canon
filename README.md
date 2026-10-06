@@ -2,22 +2,22 @@
 
 **The canonical setup for Claude Code projects, with an experimental Codex port.**
 
-One command installs three pieces of community work and wires them together as one system: Andrej Karpathy's `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` persistence trio, Every Inc's Compound Engineering `/ce:plan` + `/ce:work` planning loop, and Matt Van Horn's `/last30days` research skill. canon adds the bootstrap and the hooks that keep the discipline from rotting.
+One command installs three pieces of community work and wires them together as one system: Andrej Karpathy's `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` persistence trio, Every Inc's Compound Engineering `/ce-plan` + `/ce-work` planning loop, and Matt Van Horn's `/last30days` research skill. canon adds the bootstrap and the hooks that keep the discipline from rotting.
 
 ## What it composes
 
 | Piece | Source | Role |
 |---|---|---|
 | `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio | [Karpathy](https://x.com/karpathy) | Behavioral spec + decision log + failure log. A small, human-written context file the agent reads at task start. |
-| `/ce:plan` + `/ce:work` | [Every Inc — Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | Parallel research agents produce a structured plan; execution ticks off acceptance criteria. |
-| `/last30days` | [Matt Van Horn](https://github.com/mvanhorn/last30days-skill) | Parallel community-knowledge search across Reddit / HN / Polymarket / GitHub / X / YouTube / TikTok / Instagram / Bluesky / open web — grounds `/ce:plan` in fresh source material. Most sources free; ScrapeCreators key unlocks paid platforms. |
+| `/ce-plan` + `/ce-work` | [Every Inc — Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | Parallel research agents produce a structured plan; execution ticks off acceptance criteria. |
+| `/last30days` | [Matt Van Horn](https://github.com/mvanhorn/last30days-skill) | Parallel community-knowledge search across Reddit / HN / Polymarket / GitHub / X / YouTube / TikTok / Instagram / Bluesky / open web — grounds `/ce-plan` in fresh source material. Most sources free; ScrapeCreators key unlocks paid platforms. |
 
 The canonical loop is **research → plan → execute → persist**:
 
 ```
 /last30days <topic>     → research
-/ce:plan <task>         → plan, grounded in fresh research
-/ce:work                → execute
+/ce-plan <task>         → plan, grounded in fresh research
+/ce-work                → execute
 MEMORY.md auto-updates  → persist (via canon's Stop hook)
 ```
 
@@ -50,7 +50,7 @@ canon's composition is not arbitrary. It is distilled from 225+ files of agent-t
 
 - `/last30days` made the cut over half a dozen other community-research tools because it had the strongest demonstrated signal across multiple independent creators.
 - Karpathy's `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` trio survived because a small, human-written context file is the version of this pattern the evidence actually supports (see "What the evidence says" below).
-- The Compound Engineering `/ce:plan` + `/ce:work` loop was the only credible end-to-end planning + execution framework that didn't require its own runtime.
+- The Compound Engineering `/ce-plan` + `/ce-work` loop was the only credible end-to-end planning + execution framework that didn't require its own runtime.
 - look-back came from Mervin Praison's meta-prompt because it was the cleanest formulation of the "mine your own sessions" pattern that recurred across roughly a dozen creators.
 
 The packaging is what canon adds. The curation is what made the four the right four.
@@ -63,7 +63,7 @@ The packaging is what canon adds. The curation is what made the four the right f
 
 # Or via a marketplace
 /plugin marketplace add Orthogon-AI-Labs/canon
-/plugin install canon
+/plugin install canon@canon
 ```
 
 After install, run the init skill once per project:
@@ -80,7 +80,7 @@ The init skill is the full bootstrap. It:
 4. Checks for existing `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` collisions
 5. Writes the three files to your project root
 6. Wires up the hooks (already in this plugin — no extra step). The `Stop` memory hook proposes entries for confirmation by default; silent-append is an opt-in (see "Tune the Stop hook" below)
-7. Reports what got created and suggests `/last30days <topic>` → `/ce:plan <task>` → `/ce:work` to verify end-to-end
+7. Reports what got created and suggests `/last30days <topic>` → `/ce-plan <task>` → `/ce-work` to verify end-to-end
 
 ### Codex experimental install
 
@@ -240,7 +240,7 @@ optimize         → tighten the skill against an eval, strict improvements only
 canon is glue. The intelligence is in the upstream work, credited inline above and in detail in [CREDITS.md](CREDITS.md):
 
 - **Andrej Karpathy** — `CLAUDE.md` / `MEMORY.md` / `ERRORS.md` pattern and the full CLAUDE.md template
-- **Every Inc** — [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) (`/ce:plan` + `/ce:work`)
+- **Every Inc** — [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) (`/ce-plan` + `/ce-work`)
 - **Matt Van Horn** — [/last30days](https://github.com/mvanhorn/last30days-skill) research skill
 - **Mervin Praison** — [Codex meta-prompt](https://mer.vin/2026/05/codex-meta-prompt-turn-repeated-sessions-into-skills-subagents-and-automations/) (the basis for canon's `look-back` skill)
 

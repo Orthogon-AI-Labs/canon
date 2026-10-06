@@ -20,15 +20,15 @@ What canon adds:
 
 ---
 
-## Every Inc — Compound Engineering (`/ce:plan` + `/ce:work`)
+## Every Inc — Compound Engineering (`/ce-plan` + `/ce-work`)
 
 Repository: [github.com/EveryInc/compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin)
 
-Compound Engineering provides the planning and execution half of the loop that pairs with canon's persistence half. `/ce:plan` runs parallel research agents to produce a structured `plan.md` for a given task. `/ce:work` executes that plan and ticks off acceptance criteria.
+Compound Engineering provides the planning and execution half of the loop that pairs with canon's persistence half. `/ce-plan` runs parallel research agents to produce a structured `plan.md` for a given task. `/ce-work` executes that plan and ticks off acceptance criteria.
 
 What canon uses:
 - The auto-install step in `canon-init` runs `/plugin marketplace add EveryInc/compound-engineering-plugin` and `/plugin install compound-engineering` so users get both halves of the loop from one bootstrap command
-- The README and documentation point at `/ce:plan` → `/ce:work` → MEMORY.md as the canonical loop
+- The README and documentation point at `/ce-plan` → `/ce-work` → MEMORY.md as the canonical loop
 
 What canon adds:
 - The persistence half of that loop (MEMORY.md update on session end)
@@ -42,13 +42,13 @@ If you want to opt out of the auto-install, the init skill asks before running i
 
 Repository: [github.com/mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill)
 
-`/last30days` runs parallel community-knowledge searches across Reddit, Hacker News, Polymarket, GitHub, X / Twitter, YouTube, TikTok, Instagram, Threads, Pinterest, Bluesky, and the open web, producing a synthesized brief that feeds into `/ce:plan` as fresh source material. Without it, `/ce:plan` is grounded only in your codebase; with it, the plan is also grounded in what the world has said about the problem in the last month.
+`/last30days` runs parallel community-knowledge searches across Reddit, Hacker News, Polymarket, GitHub, X / Twitter, YouTube, TikTok, Instagram, Threads, Pinterest, Bluesky, and the open web, producing a synthesized brief that feeds into `/ce-plan` as fresh source material. Without it, `/ce-plan` is grounded only in your codebase; with it, the plan is also grounded in what the world has said about the problem in the last month.
 
 The skill follows a bring-your-own-keys model. Reddit (with comments), Hacker News, Polymarket, and GitHub work with zero credentials. X via browser session, YouTube via `yt-dlp`, and Bluesky via app password are also free. The paid unlocks (TikTok, Instagram, Threads, Pinterest, YouTube comments) require a ScrapeCreators API key (10,000 free calls, paid after); Perplexity Sonar and Brave search are optional pay-as-you-go layers.
 
 What canon uses:
 - The auto-install step in `canon-init` runs the install commands so users get the research → plan → execute → persist loop end-to-end
-- The README positions `/last30days <topic>` → `/ce:plan <task>` → `/ce:work` → MEMORY.md as the recommended workflow
+- The README positions `/last30days <topic>` → `/ce-plan <task>` → `/ce-work` → MEMORY.md as the recommended workflow
 
 What canon adds:
 - Nothing — `/last30days` is installed and used unchanged. The opt-out flag in the init skill applies here too.
@@ -100,7 +100,7 @@ The synthesis that produced canon came from a vault of agent-tooling notes maint
 
 - *Karoathsynrules* — the viral CLAUDE.md rules thread captured in full
 - *Karpathys knowledge base* / *Karpathy llm wiki* / *How to make karpathys system* — Karpathy's three-layer knowledge-base pattern, of which the CLAUDE.md trio is the simplest case
-- *Productivity Tools and Claude Code Hacks* — notes on Compound Engineering's `/ce:plan` + `/ce:work` workflow
+- *Productivity Tools and Claude Code Hacks* — notes on Compound Engineering's `/ce-plan` + `/ce-work` workflow
 
 See `synthesis-and-ideas.md` in that vault for the full reading.
 

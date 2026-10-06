@@ -29,7 +29,7 @@ Useful options:
 scripts/install-codex.sh init --runtime codex \
   --root /path/to/project \
   --name "Project Name" \
-  --user "Noah" \
+  --user "Your Name" \
   --role "owner" \
   --stack "TypeScript, React, Node" \
   --voice "direct, concise, implementation-first"

@@ -1,0 +1,11 @@
+{
+  "name": "canon",
+  "owner": { "name": "Orthogon AI Labs" },
+  "plugins": [
+    {
+      "name": "canon",
+      "source": "./",
+      "description": "The canonical setup for Claude Code projects: persistence trio, planning loop, research skill, and the hooks that keep them fresh."
+    }
+  ]
+}

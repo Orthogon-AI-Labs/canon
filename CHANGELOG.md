@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — launch prep
+
+- Added `.claude-plugin/marketplace.json` so `/plugin marketplace add Orthogon-AI-Labs/canon` works; install with `/plugin install canon@canon`.
+- Compound Engineering renamed its commands: `/ce:plan` → `/ce-plan`, `/ce:work` → `/ce-work`. Updated every reference.
+- `canon-init` now runs `/plugin install last30days@last30days-skill` after adding the marketplace (adding the marketplace alone does not install the skill).
+
 ## Unreleased — context minimization
 
 Repositioned canon around the evidence on context files (ETH Zurich, arXiv 2602.11988): small, human-written context helps; large, machine-generated context hurts and costs more. See `docs/context-minimization-plan-2026-05-29.md`.

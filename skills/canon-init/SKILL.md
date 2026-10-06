@@ -35,20 +35,20 @@ Before writing any files, ask the user:
 - Which CLAUDE.md size: **minimal** (Karpathy's 4-line core, fastest setup), **standard** (recommended — 4 rules + decision log + tech stack lock, ~30 min setup), or **full** (the complete template, ~2 hr setup)
 - Whether to also wire up the auto-write hooks (defaults to yes — the hooks are what keep MEMORY.md from going stale)
 - Whether to also install **Compound Engineering** (defaults to yes — it is the planning half of the loop this plugin is the persistence half of)
-- Whether to also install **/last30days** (defaults to yes — it is the research step that grounds `/ce:plan` in current community knowledge instead of stale training data)
+- Whether to also install **/last30days** (defaults to yes — it is the research step that grounds `/ce-plan` in current community knowledge instead of stale training data)
 - The project name, the user's name and role, and the tech stack — so the templates aren't generic
 
 If the user doesn't supply these, infer from the project's existing files (package.json, pyproject.toml, README) and confirm before writing.
 
 ### 2. Install Compound Engineering (if opted in)
 
-Compound Engineering is a separate plugin by @EveryInc that provides `/ce:plan` and `/ce:work` — the planning + execution half of the loop. `canon` is the persistence half. They are designed to compose: every `/ce:plan` lands on top of an agent that has read CLAUDE.md, MEMORY.md, and ERRORS.md; every `/ce:work` that ships writes its outcome back via the Stop hook.
+Compound Engineering is a separate plugin by @EveryInc that provides `/ce-plan` and `/ce-work` — the planning + execution half of the loop. `canon` is the persistence half. They are designed to compose: every `/ce-plan` lands on top of an agent that has read CLAUDE.md, MEMORY.md, and ERRORS.md; every `/ce-work` that ships writes its outcome back via the Stop hook.
 
 If the user opted in (default):
 
-1. **Check for prior install.** Look for the `/ce:plan` slash command in the current environment. If it's available, skip ahead — Compound Engineering is already installed. Confirm this to the user with one line and move on.
+1. **Check for prior install.** Look for the `/ce-plan` slash command in the current environment. If it's available, skip ahead — Compound Engineering is already installed. Confirm this to the user with one line and move on.
 
-2. **Add the marketplace.** If `/ce:plan` is not available, instruct the user (or run on their behalf, if the host environment allows) to execute:
+2. **Add the marketplace.** If `/ce-plan` is not available, instruct the user (or run on their behalf, if the host environment allows) to execute:
 
    ```
    /plugin marketplace add EveryInc/compound-engineering-plugin
@@ -64,7 +64,7 @@ If the user opted in (default):
 
    The user may need to confirm the install in the Claude Code or Cowork UI. Wait for confirmation before proceeding to the file-writing step.
 
-4. **Verify.** After install, confirm `/ce:plan` is now available. If verification fails (because the marketplace name changed, the plugin moved, or the user is on a host that doesn't support plugin installs from a skill), report the failure clearly and continue with the rest of the bootstrap — the persistence half still works without Compound Engineering, the user just won't have `/ce:plan` and `/ce:work` to pair with it.
+4. **Verify.** After install, confirm `/ce-plan` is now available. If verification fails (because the marketplace name changed, the plugin moved, or the user is on a host that doesn't support plugin installs from a skill), report the failure clearly and continue with the rest of the bootstrap — the persistence half still works without Compound Engineering, the user just won't have `/ce-plan` and `/ce-work` to pair with it.
 
 5. **Note for offline / restricted hosts.** If the host environment is Cowork without plugin-install permissions, or the user is offline, surface the marketplace add + install commands as a copy-paste block they can run later when they next open Claude Code, and continue with the rest of the bootstrap.
 
@@ -72,7 +72,7 @@ If the user opted out, skip this entire step.
 
 ### 3. Install /last30days (if opted in)
 
-`/last30days` is an open-source skill by Matt Van Horn ([github.com/mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill)). It runs parallel searches across Reddit, Hacker News, Polymarket, GitHub, X / Twitter, YouTube, TikTok, Instagram, Threads, Pinterest, Bluesky, and the open web — typically returning a structured brief in 2-3 minutes. The point: ground `/ce:plan` in *current* community knowledge instead of training-data-era information.
+`/last30days` is an open-source skill by Matt Van Horn ([github.com/mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill)). It runs parallel searches across Reddit, Hacker News, Polymarket, GitHub, X / Twitter, YouTube, TikTok, Instagram, Threads, Pinterest, Bluesky, and the open web — typically returning a structured brief in 2-3 minutes. The point: ground `/ce-plan` in *current* community knowledge instead of training-data-era information.
 
 **Cost and setup model (bring your own keys).** Most of `/last30days` is free out of the box: Reddit (with comments), Hacker News, Polymarket, and GitHub work with zero credentials. X / Twitter works free via browser session (just be logged into x.com), YouTube via `yt-dlp` (free), Bluesky via app password (free). The paid unlocks are optional: TikTok, Instagram, Threads, Pinterest, and YouTube comments require a **ScrapeCreators API key** (10,000 free calls, paid after). Perplexity Sonar (via OpenRouter) and Brave web search are optional pay-as-you-go layers. The `/last30days` setup wizard handles all of this on first run — users who only want the free tier can skip the paid unlocks.
 
@@ -80,8 +80,8 @@ The canonical loop is **research → plan → work**:
 
 ```
 /last30days <topic>     # research
-/ce:plan <task>         # plan, grounded in fresh research
-/ce:work                # execute
+/ce-plan <task>         # plan, grounded in fresh research
+/ce-work                # execute
 ```
 
 If the user opted in (default):
@@ -92,6 +92,7 @@ If the user opted in (default):
 
    ```
    /plugin marketplace add mvanhorn/last30days-skill
+   /plugin install last30days@last30days-skill
    ```
 
    That's the install per Matt's README. If Claude Code prompts for an explicit install confirmation, accept it. For other surfaces (claude.ai web, OpenClaw, Gemini CLI, manual), see the install matrix in [the upstream README](https://github.com/mvanhorn/last30days-skill).
@@ -152,8 +153,8 @@ After writing files, output:
 - `/last30days` install status (installed by this run, already present, or skipped per user opt-out / install failed)
 - A reminder that the bundled `decision-log` and `errors-check` skills handle the manual write/read cases when the hooks aren't sufficient
 - A reminder that `look-back`, `protected-sections`, and `optimize` are also available for workflow mining, Markdown invariants, and eval-gated skill improvement
-- The canonical loop in one line: `/last30days <topic>` → `/ce:plan <task>` → `/ce:work`
-- A suggested first command pair: try `/last30days <topic related to your project>` followed by `/ce:plan <your first task>` — to verify the full loop is wired up end to end
+- The canonical loop in one line: `/last30days <topic>` → `/ce-plan <task>` → `/ce-work`
+- A suggested first command pair: try `/last30days <topic related to your project>` followed by `/ce-plan <your first task>` — to verify the full loop is wired up end to end
 
 ## Output Files
 

@@ -1,7 +1,7 @@
 {
   "name": "canon",
   "version": "0.5.0",
-  "description": "The canonical setup for Claude Code projects, with an experimental Codex port. One command installs Karpathy's CLAUDE.md / MEMORY.md / ERRORS.md persistence trio, Every Inc's Compound Engineering (/ce:plan + /ce:work) loop, and Matt Van Horn's /last30days research skill — then wires them together with auto-write hooks so the discipline doesn't rot.",
+  "description": "The canonical setup for Claude Code projects, with an experimental Codex port. One command installs Karpathy's CLAUDE.md / MEMORY.md / ERRORS.md persistence trio, Every Inc's Compound Engineering (/ce-plan + /ce-work) loop, and Matt Van Horn's /last30days research skill — then wires them together with auto-write hooks so the discipline doesn't rot.",
   "author": {
     "name": "Orthogon AI Labs"
   },

@@ -34,6 +34,7 @@ def run_git(args: list[str], cwd: Path, check: bool = True) -> subprocess.Comple
         ["git", *args],
         cwd=cwd,
         text=True,
+        errors="surrogateescape",
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         check=check,
@@ -69,7 +70,7 @@ def read_worktree(root: Path, path: Path) -> str:
     full_path = root / path
     if not full_path.exists():
         return ""
-    return full_path.read_text(encoding="utf-8")
+    return full_path.read_text(encoding="utf-8", errors="surrogateescape")
 
 
 def read_index(root: Path, path: Path) -> str:

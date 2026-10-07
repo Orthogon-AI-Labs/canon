@@ -5,7 +5,7 @@ description: >
   sections, verify that protected blocks survived a diff, or approve a specific
   protected-section edit.
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # canon protected sections
@@ -66,6 +66,14 @@ python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py --allow 
 3. If the checker fails, report the file and protected block name.
 4. If the user approved a named block, rerun with `--allow <name>`.
 5. Keep approval narrow. Approval for one block does not approve other protected blocks.
+
+## Hooks (Claude Code)
+
+When canon is installed as a Claude Code plugin, hooks enforce these rules:
+
+- An edit guard blocks `Edit`, `Write` and `MultiEdit` calls that would change, remove, rename or break a protected block from `HEAD`, unless the user approved that block in this session. When it blocks, tell the user which block you need to change and why, and ask for the approval phrase. Don't route around it with Bash or by removing the markers.
+- Approval counts only when the user writes "I approve editing protected section: <name>" in their own message. It is recorded for the rest of the session and covers that block only.
+- A Stop hook reports any unapproved protected-block change that got through another way, once per session.
 
 ## Failure Meaning
 

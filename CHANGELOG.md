@@ -8,6 +8,7 @@
 - Fixed `hooks/hooks.json`: event definitions now sit under a top-level `"hooks"` key, the shape Claude Code requires for plugin hooks. Before this, the plugin loaded with a hook error and none of its hooks (SessionStart memory load, Stop, UserPromptSubmit) ran.
 - `UserPromptSubmit` is now a command hook (`hooks/scripts/errors-check-reminder.sh`) that adds the errors-check reminder as context. As a `prompt` hook, its model answered "not ok" for every non-implementation request, and Claude Code then dropped the user's prompt.
 - `Stop` memory-hook prompt is now worded as an allow/block decision. The old wording made the evaluator block the stop on trivial replies, and the agent then posted an extra "nothing to log" message.
+- `Stop` protected-sections hook now reaches the agent. It exited 1, which Claude Code treats as a non-blocking error, so the agent never saw a touched protected block. A wrapper (`hooks/scripts/protected-sections-stop-hook.py`) now blocks the stop once (exit 2) with the touched block and the approval phrase, and skips when `stop_hook_active` is set. `check-protected-sections.py` and its CLI are unchanged.
 
 ## Unreleased — context minimization
 

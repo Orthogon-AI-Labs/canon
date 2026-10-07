@@ -188,7 +188,7 @@ optimize         → tighten the skill against an eval, strict improvements only
 
 - `SessionStart` — reads MEMORY.md and ERRORS.md from the project root into context at the start of every session.
 - `Stop` (decision-log) — when a response completes a unit of work substantial enough to log, **drafts a MEMORY.md entry and surfaces it for confirmation** rather than writing silently. Writes only on your "log it". Conservative — won't propose for trivial responses. Silent-append is an opt-in (see "Tune the Stop hook").
-- `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree) and flags any touched protected block.
+- `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree). If a protected block was touched, it blocks the stop once and tells the agent which block changed, so the reply reports it: an edit you approved with "I approve editing protected section: <name>" is kept and named, an unapproved edit the agent made is reverted or sent back to you for approval, and a change the agent didn't make is reported and left alone. It blocks only once per stop, so it can't loop; while an uncommitted protected-block change remains, each turn gets that one extra reply.
 - `UserPromptSubmit` — in projects with an `ERRORS.md`, adds a one-line reminder to each prompt so implementation-shaped requests invoke `errors-check` in read mode before any approach is proposed.
 
 **Templates:**
@@ -205,6 +205,7 @@ optimize         → tighten the skill against an eval, strict improvements only
 **Script helpers:**
 
 - `hooks/scripts/check-protected-sections.py` — checks changed Markdown files against protected blocks in `HEAD`.
+- `hooks/scripts/protected-sections-stop-hook.py` — the `Stop` hook wrapper around that checker: turns a violation into a one-time block the agent sees.
 - `hooks/scripts/canon-eval.sh` — runs the alpha eval format used by `optimize`.
 - `scripts/graduation/scaffold.sh` — scaffolds a `graduate-skill` workspace (collision-safe; supports `--root`, `--force`, `--dry-run`).
 - `scripts/optimize/scaffold-context-eval.sh` — scaffolds a `canon optimize` eval for a context file (`CLAUDE.md` / `MEMORY.md` / `AGENTS.md`): a `max_chars` cost budget at the file's current size plus an optional behavior `command`. Collision-safe `--root` / `--force` / `--dry-run`.

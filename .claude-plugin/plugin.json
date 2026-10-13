@@ -1,27 +1,18 @@
 {
   "name": "canon",
   "version": "0.5.0",
-  "description": "The canonical setup for Claude Code projects, with an experimental Codex port. One command installs Karpathy's CLAUDE.md / MEMORY.md / ERRORS.md persistence trio, Every Inc's Compound Engineering (/ce-plan + /ce-work) loop, and Matt Van Horn's /last30days research skill — then wires them together with auto-write hooks so the discipline doesn't rot.",
+  "description": "Protected sections for Claude Code: mark the Markdown blocks an agent must not rewrite. An edit guard blocks unapproved changes, approval comes only from your own message, and a Stop check catches anything that slips through.",
   "author": {
     "name": "Orthogon AI Labs"
   },
   "keywords": [
     "canon",
-    "memory",
-    "claude.md",
-    "compound-engineering",
-    "karpathy",
-    "project-setup",
-    "agent-reliability",
-    "codex",
-    "agents.md",
     "protected-sections",
-    "skill-discovery",
-    "workflow-mining",
-    "look-back",
-    "skill-optimization",
-    "skill-graduation",
-    "evals"
+    "markdown",
+    "guardrails",
+    "hooks",
+    "agent-reliability",
+    "claude.md"
   ],
   "license": "MIT",
   "homepage": "https://github.com/Orthogon-AI-Labs/canon"

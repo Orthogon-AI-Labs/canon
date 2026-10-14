@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py\"'",
+            "command": "bash -lc 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-stop-hook.py\"'",
             "timeout": 20
           }
         ]

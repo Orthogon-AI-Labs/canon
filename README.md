@@ -189,7 +189,7 @@ optimize         → tighten the skill against an eval, strict improvements only
 - `SessionStart` — reads MEMORY.md and ERRORS.md from the project root into context at the start of every session.
 - `Stop` (decision-log) — when a response completes a unit of work substantial enough to log, **drafts a MEMORY.md entry and surfaces it for confirmation** rather than writing silently. Writes only on your "log it". Conservative — won't propose for trivial responses. Silent-append is an opt-in (see "Tune the Stop hook").
 - `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree) and flags any touched protected block.
-- `UserPromptSubmit` — for implementation-shaped requests, silently invokes `errors-check` in read mode before any approach is proposed.
+- `UserPromptSubmit` — in projects with an `ERRORS.md`, adds a one-line reminder to each prompt so implementation-shaped requests invoke `errors-check` in read mode before any approach is proposed.
 
 **Templates:**
 

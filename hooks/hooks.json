@@ -1,48 +1,50 @@
 {
-  "SessionStart": [
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/load-memory.sh",
-          "timeout": 10
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "Check whether this response completed a unit of work substantial enough to log to MEMORY.md (a shipped feature, a resolved bug, a meaningful decision, an approach that took more than two attempts). If yes, do NOT write to MEMORY.md yet — instead draft the one-block entry and surface it to the user with a short note like 'Worth logging to MEMORY.md? Reply \"log it\" to record this entry:' followed by the drafted block. Only invoke the decision-log skill to write once the user confirms. Rationale: an unconfirmed, model-generated memory entry becomes context the agent reads every future session, and machine-generated context measurably degrades agent performance; a human-confirmed entry does not. If the response was a one-line answer, a clarifying question, an interrupted thought, or trivial work, do nothing. Be conservative — frequent low-value proposals are noise. (To restore the old silent-append behavior, replace 'do NOT write yet / surface for confirmation' with 'invoke the decision-log skill to append' — see README, 'Tune the Stop hook'.)",
-          "timeout": 30
-        }
-      ]
-    },
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "bash -lc 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py\"'",
-          "timeout": 20
-        }
-      ]
-    }
-  ],
-  "UserPromptSubmit": [
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "prompt",
-          "prompt": "If the user's request involves implementation work that resembles past tasks in this project (bug fix, architecture choice, library selection, performance work, refactor), silently invoke the errors-check skill in read mode before suggesting any approach. Surface a match only if confident it applies. Skip this check for one-line answers, clarifying questions, or non-implementation requests.",
-          "timeout": 15
-        }
-      ]
-    }
-  ]
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/load-memory.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Decide whether Claude may stop. Answer ok: true unless the assistant's latest response completed a unit of work substantial enough to log to MEMORY.md (a shipped feature, a resolved bug, a meaningful decision, an approach that took more than two attempts) and no MEMORY.md entry has been proposed for that work yet. One-line answers, clarifying questions, information lookups, interrupted thoughts, trivial work, and responses that already propose an entry are always ok: true. Be conservative — frequent low-value proposals are noise. When logging is warranted, answer ok: false with this reason: 'Do NOT write to MEMORY.md yet. Draft the one-block entry and surface it to the user with a short note like \"Worth logging to MEMORY.md? Reply 'log it' to record this entry:\" followed by the drafted block. Only invoke the decision-log skill to write once the user confirms.' Rationale: an unconfirmed, model-generated memory entry becomes context the agent reads every future session, and machine-generated context measurably degrades agent performance; a human-confirmed entry does not. (To restore the old silent-append behavior, replace that reason with 'Invoke the decision-log skill to append the entry.' — see README, 'Tune the Stop hook'.)",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -lc 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py\"'",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/errors-check-reminder.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -5,6 +5,9 @@
 - Added `.claude-plugin/marketplace.json` so `/plugin marketplace add Orthogon-AI-Labs/canon` works; install with `/plugin install canon@canon`.
 - Compound Engineering renamed its commands: `/ce:plan` → `/ce-plan`, `/ce:work` → `/ce-work`. Updated every reference.
 - `canon-init` now runs `/plugin install last30days@last30days-skill` after adding the marketplace (adding the marketplace alone does not install the skill).
+- Fixed `hooks/hooks.json`: event definitions now sit under a top-level `"hooks"` key, the shape Claude Code requires for plugin hooks. Before this, the plugin loaded with a hook error and none of its hooks (SessionStart memory load, Stop, UserPromptSubmit) ran.
+- `UserPromptSubmit` is now a command hook (`hooks/scripts/errors-check-reminder.sh`) that adds the errors-check reminder as context. As a `prompt` hook, its model answered "not ok" for every non-implementation request, and Claude Code then dropped the user's prompt.
+- `Stop` memory-hook prompt is now worded as an allow/block decision. The old wording made the evaluator block the stop on trivial replies, and the agent then posted an extra "nothing to log" message.
 
 ## Unreleased — context minimization
 

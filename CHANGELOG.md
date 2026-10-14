@@ -2,6 +2,7 @@
 
 ## Unreleased — launch prep
 
+- **canon is now just protected sections.** Removed from the main line: the `canon-init` bootstrap (and its installs of Compound Engineering and `/last30days`), the `SessionStart` memory hook, the `Stop` memory-proposal hook, the errors-check reminder, the `decision-log` / `errors-check` / `look-back` / `optimize` / `graduate-skill` skills and their commands, the CLAUDE.md / MEMORY.md / ERRORS.md templates, the eval runner, and the Codex port. Everything removed is preserved on the `archive/canon-full` branch. The plugin now ships three hooks (approval recorder, edit guard, `Stop` check), `/canon:protect`, `/canon:check-protected` and the `protected-sections` skill.
 - Added `.claude-plugin/marketplace.json` so `/plugin marketplace add Orthogon-AI-Labs/canon` works; install with `/plugin install canon@canon`.
 - Compound Engineering renamed its commands: `/ce:plan` → `/ce-plan`, `/ce:work` → `/ce-work`. Updated every reference.
 - `canon-init` now runs `/plugin install last30days@last30days-skill` after adding the marketplace (adding the marketplace alone does not install the skill).

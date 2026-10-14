@@ -1,6 +1,6 @@
 # canon fixtures
 
-Small fixtures for the v0.4 roadmap specs.
+Small fixtures for testing the protected-section checker by hand.
 
 ## Protected Sections
 
@@ -14,27 +14,3 @@ Small fixtures for the v0.4 roadmap specs.
 - `unbalanced-marker.md`
 
 These are static examples for manual tests. To test diff behavior, copy one case into a temporary git repository, commit the protected baseline, then replace it with a changed case before running `hooks/scripts/check-protected-sections.py`.
-
-## Optimize
-
-Run the toy eval from the repository root:
-
-```bash
-hooks/scripts/canon-eval.sh fixtures/evals/toy-email.yaml
-```
-
-The YAML variant requires PyYAML. If PyYAML isn't installed, run the dependency-free JSON variant instead:
-
-```bash
-hooks/scripts/canon-eval.sh fixtures/evals/toy-email.json
-```
-
-Expected score (either variant):
-
-```text
-score: 2/2
-```
-
-## Look-Back
-
-`fixtures/look-back-fixture/` gives a tiny memory/session corpus with repeated SEO report work and an existing `seo-report` skill, so `look-back` should recommend extending the existing skill rather than creating a duplicate.

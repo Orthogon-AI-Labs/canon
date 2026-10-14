@@ -32,12 +32,12 @@ So canon optimizes for the version that works: keep context files **small, human
 The four pieces above are the prior art. canon is the glue:
 
 - **One-command bootstrap** that installs Compound Engineering and `/last30days`, writes the persistence trio at the project root, and wires up the hooks — all in one go. You can opt out of any sub-install.
-- **Hooks that keep the persistence layer fresh** — `SessionStart` reads MEMORY.md and ERRORS.md into context automatically; `Stop` *proposes* a MEMORY.md entry for you to confirm when work substantial enough to log lands (it no longer writes silently — see "What the evidence says") *and* a second `Stop` hook checks protected sections after edits; `UserPromptSubmit` runs `errors-check` silently before approaches are suggested.
+- **Hooks that keep the persistence layer fresh** — `SessionStart` reads MEMORY.md and ERRORS.md into context automatically; `Stop` *proposes* a MEMORY.md entry for you to confirm when work substantial enough to log lands (it no longer writes silently — see "What the evidence says") *and* a second `Stop` hook checks protected sections after edits; a `PreToolUse` guard blocks edits to protected sections you haven't approved; `UserPromptSubmit` runs `errors-check` silently before approaches are suggested.
 - **Lean CLAUDE.md templates plus a global-defaults starter** — `minimal` (Karpathy's 4-line core) and `standard` (recommended — rules + stack lock + voice + persistence pointers) keep only project facts; `full` is kept for users who want everything in one file but is **not** the default. Generic behavior preferences ship separately in `GLOBAL-defaults.md` for your `~/.claude` config, so you don't pay for them in every project's context on every task.
 - **The errors-check two-way pattern** — silent read on every implementation-shaped prompt before approaches are suggested, explicit write on "log this failure" phrasing. Stops the agent from re-proposing approaches you already ruled out.
 - **The look-back workflow** — mines recent memory, errors, sessions, and git history for repeated work that should become a skill, subagent, automation proposal, or extension.
 - **An experimental Codex port** — `AGENTS.md`, portable skill docs, a no-hooks install path, and a `doctor` check for Codex workspaces.
-- **Protected Markdown sections** — a shared marker convention and checker that flags accidental edits to slow lessons.
+- **Protected Markdown sections** — a shared marker convention, a checker that flags accidental edits to slow lessons, and (in Claude Code) a guard that blocks unapproved edits before they happen.
 - **The optimize alpha** — eval-first, bounded skill edits that preserve protected sections and keep only strict validation improvements.
 - **Skill graduation** — turns repeated browser/task traces into a durable `SKILL.md` by iterating a `strategy.md` one bounded change at a time until the task converges.
 - **The opt-out flags** — if you want the persistence half without the auto-installs, every sub-install can be declined and you still get the full canon experience minus the planning/research wiring.
@@ -151,6 +151,8 @@ The `name="..."` is yours to pick — make it descriptive (`stack-lock`, `voice-
 
 **When you actually want to change a protected block:** either remove the markers (you're saying "this isn't sacred anymore"), or use canon's explicit override phrasing so the change is intentional and recorded. Either is fine; the point is that the change is deliberate rather than accidental.
 
+In Claude Code, the override is a line in your own message: `I approve editing protected section: <name>`. canon records it for the rest of the session, for that block only, and its edit guard then lets edits to the block through. Without it, an `Edit`/`Write` that would change the block is blocked before it runs and the agent asks you for the phrase. Only your messages count, so the agent can't approve for itself.
+
 **Manual check anytime:**
 
 ```bash
@@ -184,12 +186,14 @@ optimize         → tighten the skill against an eval, strict improvements only
 - `optimize` — runs the alpha skill optimization loop: eval baseline, patch narrowly, validate, preserve protected sections, and report the result.
 - `graduate-skill` — turns repeated browser/task traces into a durable `SKILL.md`: scaffold a task, iterate `strategy.md` one bounded change at a time, converge, then graduate a self-contained skill with gotchas and failure recovery.
 
-**Four hooks across three lifecycle events:**
+**Six hooks across four lifecycle events:**
 
 - `SessionStart` — reads MEMORY.md and ERRORS.md from the project root into context at the start of every session.
 - `Stop` (decision-log) — when a response completes a unit of work substantial enough to log, **drafts a MEMORY.md entry and surfaces it for confirmation** rather than writing silently. Writes only on your "log it". Conservative — won't propose for trivial responses. Silent-append is an opt-in (see "Tune the Stop hook").
-- `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree). If a protected block was touched, it blocks the stop once and tells the agent which block changed, so the reply reports it: an edit you approved with "I approve editing protected section: <name>" is kept and named, an unapproved edit the agent made is reverted or sent back to you for approval, and a change the agent didn't make is reported and left alone. It blocks only once per stop, so it can't loop, and reports each change once per session: line shifts don't repeat the report, a further edit to the block does. The per-session record lives in the git directory (`.git/canon-protected-sections/`).
-- `UserPromptSubmit` — in projects with an `ERRORS.md`, adds a one-line reminder to each prompt so implementation-shaped requests invoke `errors-check` in read mode before any approach is proposed.
+- `PreToolUse` (protected-sections guard) — before an `Edit`, `Write` or `MultiEdit` on a Markdown file, works out the result and blocks the call if it would change, remove, rename or break the markers of a protected block in `HEAD` that you haven't approved this session. The agent is told which block, and the approval phrase to ask you for. Edits outside blocks, and edits that restore a block to `HEAD`, go through. When the guard can't tell what an edit does, it lets it through and the `Stop` hook checks the result.
+- `Stop` (protected-sections) — after edits, runs `check-protected-sections.py` against `HEAD` (no-op outside a git worktree), allowing blocks you approved this session. If an unapproved block changed some other way (through Bash, or by you), it blocks the stop once and tells the agent which block changed: an edit the agent made is reverted or sent back to you for approval, and a change it didn't make is reported and left alone. It blocks only once per stop, so it can't loop, and reports each change once per session: line shifts don't repeat the report, a further edit to the block does. Per-session state lives in the git directory (`.git/canon-protected-sections/`).
+- `UserPromptSubmit` (protected-sections approvals) — when your message contains `I approve editing protected section: <name>` (at the start of a line or after punctuation), records that block as approved for the rest of the session. A question like "Should I approve editing protected section: x?" doesn't count.
+- `UserPromptSubmit` (errors-check) — in projects with an `ERRORS.md`, adds a one-line reminder to each prompt so implementation-shaped requests invoke `errors-check` in read mode before any approach is proposed.
 
 **Templates:**
 
@@ -206,6 +210,8 @@ optimize         → tighten the skill against an eval, strict improvements only
 
 - `hooks/scripts/check-protected-sections.py` — checks changed Markdown files against protected blocks in `HEAD`.
 - `hooks/scripts/protected-sections-stop-hook.py` — the `Stop` hook wrapper around that checker: turns a violation into a one-time block the agent sees.
+- `hooks/scripts/protected-sections-guard.py` — the `PreToolUse` edit guard and the `UserPromptSubmit` approval recorder.
+- `hooks/scripts/canon_protected.py` — helpers shared by the two protected-sections hooks (per-session state, approvals).
 - `hooks/scripts/canon-eval.sh` — runs the alpha eval format used by `optimize`.
 - `scripts/graduation/scaffold.sh` — scaffolds a `graduate-skill` workspace (collision-safe; supports `--root`, `--force`, `--dry-run`).
 - `scripts/optimize/scaffold-context-eval.sh` — scaffolds a `canon optimize` eval for a context file (`CLAUDE.md` / `MEMORY.md` / `AGENTS.md`): a `max_chars` cost budget at the file's current size plus an optional behavior `command`. Collision-safe `--root` / `--force` / `--dry-run`.

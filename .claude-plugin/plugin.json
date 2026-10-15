@@ -1,6 +1,6 @@
 {
   "name": "canon",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Protected sections for Claude Code: mark the Markdown blocks an agent must not rewrite. An edit guard blocks unapproved changes, approval comes only from your own message, and a Stop check catches anything that slips through.",
   "author": {
     "name": "Orthogon AI Labs"

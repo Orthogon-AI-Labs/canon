@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — launch prep
+## 0.6.0 - 2026-10-15
+
+### Launch prep
 
 - **canon is now just protected sections.** Removed from the main line: the `canon-init` bootstrap (and its installs of Compound Engineering and `/last30days`), the `SessionStart` memory hook, the `Stop` memory-proposal hook, the errors-check reminder, the `decision-log` / `errors-check` / `look-back` / `optimize` / `graduate-skill` skills and their commands, the CLAUDE.md / MEMORY.md / ERRORS.md templates, the eval runner, and the Codex port. Everything removed is preserved on the `archive/canon-full` branch. The plugin now ships three hooks (approval recorder, edit guard, `Stop` check), `/canon:protect`, `/canon:check-protected` and the `protected-sections` skill.
 - Added `.claude-plugin/marketplace.json` so `/plugin marketplace add Orthogon-AI-Labs/canon` works; install with `/plugin install canon@canon`.
@@ -13,7 +15,7 @@
 - `check-protected-sections.py` no longer crashes on a changed Markdown file that isn't valid UTF-8. File contents and git output are decoded with `surrogateescape`, so invalid bytes are compared exactly instead of raising `UnicodeDecodeError`. Exit codes and output are unchanged for every input that worked before.
 - Added a `PreToolUse` guard (`hooks/scripts/protected-sections-guard.py`) that blocks `Edit` / `Write` / `MultiEdit` calls which would change, remove, rename or break a protected block from `HEAD`, unless the user approved that block in this session. A `UserPromptSubmit` hook records the approval from the user's own message ("I approve editing protected section: <name>"), so the agent can't approve for itself. The `Stop` hook now passes recorded approvals to the checker as `--allow`, so an approved edit no longer triggers a block; it still reports unapproved changes made another way (Bash, the user). Shared helpers live in `hooks/scripts/canon_protected.py`.
 
-## Unreleased — context minimization
+### Context minimization
 
 Repositioned canon around the evidence on context files (ETH Zurich, arXiv 2602.11988): small, human-written context helps; large, machine-generated context hurts and costs more. See `docs/context-minimization-plan-2026-05-29.md`.
 

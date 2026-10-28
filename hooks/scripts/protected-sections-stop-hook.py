@@ -17,12 +17,17 @@ blocked. The check is skipped then, so it blocks at most once per stop.
 Each violation is reported once per session. A violation is a file, a block, and
 the block's current text, so line shifts don't repeat a report but a further edit
 to the block does. Violations that clear are forgotten, so if one comes back it is
-reported again. The record lives in the repository's git directory.
+reported again. The record lives in the git directory of the repository the session
+started in.
+
+It checks that repository, the one the hook runs in (the agent may have cd'd), every
+repository the edit guard saw a Markdown edit in this session, and their submodules.
 """
 
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import subprocess
 import sys
@@ -38,6 +43,7 @@ from canon_protected import (
     load_checker,
     read_hook_input,
     read_json,
+    seen_repos,
     session_file,
     write_json,
 )
@@ -49,12 +55,54 @@ FAILURE_RE = re.compile(
 )
 
 
+def toplevel(directory: str) -> Path | None:
+    try:
+        result = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=directory, text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    except OSError:
+        return None
+    return Path(result.stdout.strip()) if result.returncode == 0 and result.stdout.strip() else None
+
+
+def repos_to_check(session_id: object) -> list[Path]:
+    """The session's repository, the current one, those the guard saw, and their submodules."""
+    roots: list[Path] = []
+    for start in [os.environ.get("CLAUDE_PROJECT_DIR") or ".", ".", *seen_repos(session_id)]:
+        root = toplevel(start)
+        if root is not None and root not in roots:
+            roots.append(root)
+    for root in list(roots):
+        result = subprocess.run(["git", "submodule", "foreach", "--quiet", "--recursive", "pwd"], cwd=root,
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+        for line in result.stdout.splitlines() if result.returncode == 0 else []:
+            if Path(line) not in roots:
+                roots.append(Path(line))
+    return roots
+
+
+def run_checker(root: Path, approvals: list[str]) -> subprocess.CompletedProcess[str]:
+    command = [sys.executable, str(CHECKER)]
+    # --allow=NAME, not "--allow NAME": a name starting with "-" would otherwise be read as an option.
+    command.extend(f"--allow={name}" for name in approvals)
+    return subprocess.run(
+        command,
+        cwd=root,
+        # The checker prints UTF-8 (bytes that aren't are escaped); decode it the same way whatever the locale.
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+        encoding="utf-8",
+        errors="surrogateescape",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+
+
 def violation_key(checker, root: Path, failure: str) -> str:
     """Identify a violation by file, block and the block's current text, not line numbers."""
     match = FAILURE_RE.match(failure)
     if match is None:
         # Marker syntax errors carry no line numbers, so the line itself is stable.
-        return failure
+        return "\0".join([root.as_posix(), failure])
     path, name = Path(match["path"]), match["name"]
     try:
         if match["source"] == "index":
@@ -68,7 +116,7 @@ def violation_key(checker, root: Path, failure: str) -> str:
         state = "missing"
     else:
         state = hashlib.sha256(block.body.encode("utf-8", "surrogateescape")).hexdigest()
-    return "\0".join([match["kind"], path.as_posix(), name, state])
+    return "\0".join([root.as_posix(), match["kind"], path.as_posix(), name, state])
 
 
 def load_reported(path: Path | None) -> set[str]:
@@ -87,14 +135,24 @@ def save_reported(path: Path | None, keys: set[str]) -> None:
         delete(path)
 
 
-def unreported(failures: list[str], state: Path | None) -> list[str]:
+def unreported(failures: dict[Path, list[str]], state: Path | None) -> dict[Path, list[str]]:
     """Record the current violations for this session and return the ones not reported before."""
     checker = load_checker()
-    root = checker.repo_root()
-    keys = [violation_key(checker, root, failure) for failure in failures]
+    keyed = {root: [(failure, violation_key(checker, root, failure)) for failure in lines] for root, lines in failures.items()}
     reported = load_reported(state)
-    save_reported(state, set(keys))
-    return [failure for failure, key in zip(failures, keys) if key not in reported]
+    save_reported(state, {key for pairs in keyed.values() for _, key in pairs})
+    new = {root: [failure for failure, key in pairs if key not in reported] for root, pairs in keyed.items()}
+    return {root: lines for root, lines in new.items() if lines}
+
+
+def report_lines(failures: dict[Path, list[str]], first: Path | None) -> list[str]:
+    """The checker's lines, headed by their repository when it isn't the session's."""
+    lines: list[str] = []
+    for root, failed in failures.items():
+        if root != first:
+            lines.append(f"In {root}:")
+        lines.extend(failed)
+    return lines
 
 
 def block_reason(failures: list[str]) -> str:
@@ -116,46 +174,48 @@ def main() -> int:
         return 0
 
     session_id = hook_input.get("session_id")
-    command = [sys.executable, str(CHECKER)]
-    # --allow=NAME, not "--allow NAME": a name starting with "-" would otherwise be read as an option.
-    command.extend(f"--allow={name}" for name in sorted(load_approvals(session_id)))
-    result = subprocess.run(
-        command,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,
-    )
-
-    # 2: not a git repository, so nothing to compare against.
-    if result.returncode == 2:
-        return 0
+    approvals = sorted(load_approvals(session_id))
+    roots = repos_to_check(session_id)
+    failures: dict[Path, list[str]] = {}
+    errors: list[str] = []
+    checked = False
+    for root in roots:
+        result = run_checker(root, approvals)
+        # 2: not a git repository, so nothing to compare against.
+        if result.returncode == 2:
+            continue
+        checked = True
+        lines = [line for line in result.stdout.splitlines() if line.startswith("x ")]
+        if result.returncode == 1 and lines:
+            failures[root] = lines
+        elif result.returncode != 0:
+            # The checker failing (an uncaught exception also exits 1, with no "x " lines).
+            errors.append(f"[canon protected-sections] checker failed in {root}")
+            errors.append((result.stderr or result.stdout).strip())
 
     state = session_file(session_id)
-
-    # 0: intact. Forget anything reported earlier, so a violation that comes back is reported again.
-    if result.returncode == 0:
-        save_reported(state, set())
+    if not failures:
+        if errors:
+            # Report it as a non-blocking error rather than blocking the stop.
+            print("\n".join(errors), file=sys.stderr)
+            return 1
+        if checked:
+            # Intact. Forget anything reported earlier, so a violation that comes back is reported again.
+            save_reported(state, set())
         return 0
 
-    failures = [line for line in result.stdout.splitlines() if line.startswith("x ")]
-    if result.returncode == 1 and failures:
-        try:
-            new_failures = unreported(failures, state)
-        except Exception as exc:
-            # The memory only suppresses repeats. If it breaks, report everything rather than nothing.
-            new_failures = failures
-            print(f"[canon protected-sections] per-session memory unavailable: {exc!r}", file=sys.stderr)
-        if not new_failures:
-            return 0
-        print(block_reason(new_failures), file=sys.stderr)
-        return 2
-
-    # Anything else is the checker failing (an uncaught exception also exits 1, with no
-    # "x " lines). Report it as a non-blocking error rather than blocking the stop.
-    print("[canon protected-sections] checker failed", file=sys.stderr)
-    print((result.stderr or result.stdout).strip(), file=sys.stderr)
-    return 1
+    try:
+        new_failures = unreported(failures, state)
+    except Exception as exc:
+        # The memory only suppresses repeats. If it breaks, report everything rather than nothing.
+        new_failures = failures
+        print(f"[canon protected-sections] per-session memory unavailable: {exc!r}", file=sys.stderr)
+    if not new_failures:
+        return 0
+    print(block_reason(report_lines(new_failures, roots[0] if roots else None)), file=sys.stderr)
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

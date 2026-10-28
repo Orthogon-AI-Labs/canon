@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-guard.py\"",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-guard.py\" || exit 1",
             "timeout": 10
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash -lc 'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0; python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-stop-hook.py\"'",
+            "command": "test -f \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-stop-hook.py\" && python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-stop-hook.py\"",
             "timeout": 20
           }
         ]
@@ -30,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-guard.py\"",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/protected-sections-guard.py\" || exit 1",
             "timeout": 10
           }
         ]

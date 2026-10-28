@@ -9,6 +9,7 @@ Per-session state lives in the git directory of the repository the session start
 
 - <session_id>.json            violations the Stop hook has already reported
 - <session_id>.approvals.json  blocks the user approved with the approval phrase
+- <session_id>.repos.json      other repositories the session edited Markdown in
 """
 
 from __future__ import annotations
@@ -216,3 +217,18 @@ def record_approvals(session_id: object, names: list[str]) -> bool:
     if path is None:
         return False
     return write_json(path, {"approved": sorted(load_approvals(session_id) | set(names))})
+
+
+def seen_repos(session_id: object) -> list[str]:
+    data = read_json(session_file(session_id, ".repos"))
+    repos = data.get("repos") if isinstance(data, dict) else None
+    if not isinstance(repos, list):
+        return []
+    return [repo for repo in repos if isinstance(repo, str)]
+
+
+def remember_repo(session_id: object, root: Path) -> None:
+    """Note a repository the session edits Markdown in, so the Stop hook checks it too."""
+    repos = seen_repos(session_id)
+    if str(root) not in repos:
+        write_json(session_file(session_id, ".repos"), {"repos": repos + [str(root)]})

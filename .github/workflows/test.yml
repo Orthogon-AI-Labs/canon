@@ -1,0 +1,36 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  hooks:
+    name: hooks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # macOS runs the system /usr/bin/python3 (3.9), the oldest Python the hooks support.
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Use the system Python on macOS
+        if: runner.os == 'macOS'
+        run: echo /usr/bin >> "$GITHUB_PATH"
+      - run: python3 --version
+      - name: Edit guard, approval recorder and Stop hook
+        run: python3 tests/guard_test.py "$RUNNER_TEMP/guard"
+      - name: Stop hook once-per-session memory
+        run: bash tests/sess-test.sh "$RUNNER_TEMP/sess"
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Validate plugin and marketplace manifests
+        run: npx --yes @anthropic-ai/claude-code@2.1.156 plugin validate .

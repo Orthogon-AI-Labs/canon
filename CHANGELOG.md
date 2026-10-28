@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added the hook test suites (`tests/`) and a GitHub Actions workflow that runs them on Linux and macOS (system Python 3.9) and validates the plugin manifests on every pull request.
+
 ## 0.6.0 - 2026-10-15
 
 ### Launch prep

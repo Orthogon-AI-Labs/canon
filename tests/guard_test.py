@@ -11,6 +11,7 @@ import sys
 import time
 from pathlib import Path
 
+sys.dont_write_bytecode = True  # this process imports plugin modules too; only the hooks' own writes should count below
 CLONE = Path(os.environ.get("CANON_CLONE", Path(__file__).resolve().parent.parent))
 WORK = Path(sys.argv[1])
 hooks = json.loads((CLONE / "hooks/hooks.json").read_text())["hooks"]

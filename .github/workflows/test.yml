@@ -27,6 +27,8 @@ jobs:
         run: python3 tests/guard_test.py "$RUNNER_TEMP/guard"
       - name: Stop hook once-per-session memory
         run: bash tests/sess-test.sh "$RUNNER_TEMP/sess"
+      - name: Checker
+        run: python3 tests/checker_test.py "$RUNNER_TEMP/checker"
 
   validate:
     runs-on: ubuntu-latest

@@ -1,6 +1,6 @@
 ---
 description: Check changed Markdown files for protected-section edits
-argument-hint: "[--allow <section-name>]"
+argument-hint: "[--allow=<section-name>]"
 allowed-tools: [Bash, Skill]
 ---
 
@@ -20,10 +20,10 @@ Run the checker from the repository root:
 python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py $ARGUMENTS
 ```
 
-If this command is running in a Codex-installed workspace where the checker lives under `.canon/codex/bin/`, use:
+Only if `${CLAUDE_PLUGIN_ROOT}` isn't set, in a Codex-installed workspace (from `archive/canon-full`) where the checker lives under `.canon/codex/bin/`, use:
 
 ```bash
 python3 .canon/codex/bin/check-protected-sections.py $ARGUMENTS
 ```
 
-Accept only `--allow <section-name>` as a meaningful argument. If the checker fails, report the exact file and protected block name and ask for explicit approval before proceeding.
+Accept only `--allow=<section-name>` as a meaningful argument (with `=`, so a name starting with `-` isn't read as an option). If the checker fails, report the exact file and protected block name and ask for explicit approval before proceeding.

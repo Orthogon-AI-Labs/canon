@@ -139,14 +139,14 @@ def parse_blocks(text: str) -> dict[str, Block]:
     return blocks
 
 
-def parse_blocks_lenient(text: str) -> dict[str, Block | None]:
-    """The blocks that still parse when markers are broken.
+def parse_blocks_lenient(text: str) -> dict[str, list[Block]]:
+    """Every block that still parses when markers are broken, by name.
 
     An end marker with no open block is skipped, and a start marker inside an open block
-    drops the open one. A name that appears more than once maps to None. For text that
-    parse_blocks accepts, the result is the same.
+    drops the open one. A name maps to more than one block when it appears more than once.
+    For text that parse_blocks accepts, each name maps to that one block.
     """
-    blocks: dict[str, Block | None] = {}
+    blocks: dict[str, list[Block]] = {}
     active_name: str | None = None
     active_start_line = 0
     active_body: list[str] = []
@@ -157,8 +157,9 @@ def parse_blocks_lenient(text: str) -> dict[str, Block | None]:
             active_name, active_start_line, active_body = start.group(1), line_number, []
         elif END_RE.fullmatch(marker_text(line)):
             if active_name is not None:
-                block = Block(active_name, "".join(active_body), active_start_line, line_number)
-                blocks[active_name] = None if active_name in blocks else block
+                blocks.setdefault(active_name, []).append(
+                    Block(active_name, "".join(active_body), active_start_line, line_number)
+                )
             active_name = None
         elif active_name is not None:
             active_body.append(line)
@@ -168,7 +169,7 @@ def parse_blocks_lenient(text: str) -> dict[str, Block | None]:
 def compare_blocks(path: Path, base_blocks: dict, current_blocks: dict, source_label: str, allowed: set[str]) -> list[str]:
     failures: list[str] = []
     for name, base_block in base_blocks.items():
-        if name in allowed or base_block is None:
+        if name in allowed:
             continue
         current_block = current_blocks.get(name)
         if current_block is None:
@@ -198,7 +199,7 @@ def compare_file(root: Path, path: Path, current_text: str, source_label: str, a
     except ParseError as exc:
         # Report the broken markers, and still check every block that can be found, so a
         # broken marker can't hide a change to another block in the same file.
-        lenient = {name: block for name, block in parse_blocks_lenient(current_text).items() if block is not None}
+        lenient = {name: found[0] for name, found in parse_blocks_lenient(current_text).items() if len(found) == 1}
         return [f'{path}: invalid protected marker syntax in {source_label}: {exc}'] + compare_blocks(
             path, base_blocks, lenient, source_label, allowed
         )

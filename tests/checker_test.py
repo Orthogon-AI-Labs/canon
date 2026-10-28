@@ -177,7 +177,7 @@ spec = importlib.util.spec_from_file_location("checker_mod", CHECKER)
 mod = sys.modules["checker_mod"] = importlib.util.module_from_spec(spec)  # dataclasses look the module up
 spec.loader.exec_module(mod)
 for text in [DOC, "", "no markers\n", "﻿" + blk("b", "x"), blk("a", "") + blk("b", "two\nlines"), "x\r\n" + blk("c", "crlf\r")]:
-    expect(f"same blocks for {text[:30]!r}", mod.parse_blocks_lenient(text), mod.parse_blocks(text))
+    expect(f"same blocks for {text[:30]!r}", mod.parse_blocks_lenient(text), {k: [v] for k, v in mod.parse_blocks(text).items()})
 
 pycache = [str(p) for p in CLONE.rglob("__pycache__") if ".git" not in p.parts]
 expect("no __pycache__ written into the plugin", pycache, [])

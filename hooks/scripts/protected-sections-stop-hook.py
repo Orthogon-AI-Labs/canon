@@ -18,12 +18,14 @@ run; this hook catches whatever else changed a block, such as Bash or the user.
 stop_hook_active is true when the agent is already continuing because a Stop hook
 blocked. The check is skipped then, so it blocks at most once per stop.
 
-Each violation is reported once per session, by whichever check sees it first: a
-violation reported after a Bash command isn't reported again at Stop. A violation is
-a file, a block, and the block's current text, so line shifts don't repeat a report
-but a further edit to the block does. Violations that clear are forgotten, so if one
-comes back it is reported again. The record lives in the git directory of the
-repository the session started in.
+Each violation is reported at most once per session by each kind of check: once after
+the first Bash command that sees it, and once at Stop, so a change the agent heard of
+mid-reply is still raised before it finishes. After a command, a violation already
+reported at Stop (in an earlier turn) isn't repeated. A violation is a file, a block,
+and the block's current text, so line shifts don't repeat a report but a further edit
+to the block does. Violations that clear are forgotten, so if one comes back it is
+reported again. The record lives in the git directory of the repository the session
+started in.
 
 It checks that repository, the one the hook runs in (the agent may have cd'd), every
 repository the edit guard saw a Markdown edit in this session, and their submodules.
@@ -124,29 +126,42 @@ def violation_key(checker, root: Path, failure: str) -> str:
     return "\0".join([root.as_posix(), match["kind"], path.as_posix(), name, state])
 
 
-def load_reported(path: Path | None) -> set[str]:
+# What each check has reported: "reported" at Stop, "after_command" after a Bash command.
+RECORDS = ("reported", "after_command")
+
+
+def load_reported(path: Path | None) -> dict[str, set[str]]:
     data = read_json(path)
-    reported = data.get("reported") if isinstance(data, dict) else None
-    if not isinstance(reported, list):
-        return set()
-    return {key for key in reported if isinstance(key, str)}
+    record = {}
+    for field in RECORDS:
+        keys = data.get(field) if isinstance(data, dict) else None
+        record[field] = {key for key in keys if isinstance(key, str)} if isinstance(keys, list) else set()
+    return record
 
 
-def save_reported(path: Path | None, keys: set[str]) -> None:
-    """Record the violations reported so far. If this fails, the next stop reports them again."""
-    if keys:
-        write_json(path, {"reported": sorted(keys)})
+def save_reported(path: Path | None, record: dict[str, set[str]]) -> None:
+    """Record the violations reported so far. If this fails, the next check reports them again."""
+    if any(record.values()):
+        write_json(path, {field: sorted(keys) for field, keys in record.items() if keys})
     else:
         delete(path)
 
 
-def unreported(failures: dict[Path, list[str]], state: Path | None) -> dict[Path, list[str]]:
-    """Record the current violations for this session and return the ones not reported before."""
+def unreported(failures: dict[Path, list[str]], state: Path | None, after_tool: bool) -> dict[Path, list[str]]:
+    """Record the current violations for this session and return the ones this check should report.
+
+    Stop reports each violation once, even one already reported after a command, so the
+    agent is reminded before it finishes. After a command, a violation either check has
+    already reported isn't repeated. Both forget violations that have cleared.
+    """
     checker = load_checker()
     keyed = {root: [(failure, violation_key(checker, root, failure)) for failure in lines] for root, lines in failures.items()}
-    reported = load_reported(state)
-    save_reported(state, {key for pairs in keyed.values() for _, key in pairs})
-    new = {root: [failure for failure, key in pairs if key not in reported] for root, pairs in keyed.items()}
+    current = {key for pairs in keyed.values() for _, key in pairs}
+    record = {field: keys & current for field, keys in load_reported(state).items()}
+    seen = record["reported"] | record["after_command"] if after_tool else record["reported"]
+    record["after_command" if after_tool else "reported"] = current
+    save_reported(state, record)
+    new = {root: [failure for failure, key in pairs if key not in seen] for root, pairs in keyed.items()}
     return {root: lines for root, lines in new.items() if lines}
 
 
@@ -174,8 +189,7 @@ def block_reason(failures: list[str], after_tool: bool = False) -> str:
     lines.extend(phrases)
     lines.append("If you did not make the change (for example, the user edited the file), report it and leave it.")
     if after_tool:
-        lines.append("Tell the user in your reply which protected block changed, by file and block name. "
-                     "This is the only report of this change.")
+        lines.append("Tell the user in your reply which protected block changed, by file and block name.")
     else:
         lines.append("This check blocks once; your next reply ends the turn.")
     return "\n".join(lines)
@@ -215,11 +229,11 @@ def main() -> int:
             return 1
         if checked:
             # Intact. Forget anything reported earlier, so a violation that comes back is reported again.
-            save_reported(state, set())
+            save_reported(state, {})
         return 0
 
     try:
-        new_failures = unreported(failures, state)
+        new_failures = unreported(failures, state, after_tool)
     except Exception as exc:
         # The memory only suppresses repeats. If it breaks, report everything rather than nothing.
         new_failures = failures

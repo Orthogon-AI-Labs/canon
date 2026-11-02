@@ -41,7 +41,7 @@ A block is protected once it's committed: canon compares your files against the 
   That approves blocks with that name for the rest of the session. If the name has spaces, put it in quotes: `I approve editing protected section: "voice rules"`. The agent can't approve for itself: canon doesn't count the phrase in a question, a code block, text Claude Code adds to the conversation, or a message that quotes canon's own report.
 - **Shell changes are reported right away.** If a shell command changes a protected block (`sed -i`, a heredoc, a script), canon tells the agent as soon as the command finishes, while it can still undo the change.
 - **Other changes are caught at the end of the reply.** If a protected block changed some other way, such as you editing the file, the agent has to report it when it finishes its reply.
-- **Each change is reported once.** A change reported after a shell command isn't reported again at the end of the reply. It is reported again if the block's text changes further, or if it's undone and then comes back.
+- **Each change is reported once by each check.** A change made by a shell command is reported right after it, and once more when the agent finishes its reply, so the agent is reminded before it tells you it's done. Neither check repeats it after that, and a later shell command doesn't repeat a change already reported at the end of a reply. A change is reported again if the block's text changes further, or if it's undone and then comes back.
 
 To stop protecting a block, remove its markers.
 
@@ -58,7 +58,7 @@ It exits 0 if every protected block matches the last commit, 1 if one changed (w
 ## Limits
 
 - canon catches accidental rewrites. It doesn't stop an agent that is deliberately working around it: shell commands are checked only after they run, and an agent could write the approval record itself.
-- The check after a shell command reports a change; it doesn't undo it. Because that report isn't repeated at the end of the reply, an agent that ignores it can still leave the change out of its reply.
+- The checks report a change; they don't undo it. An agent that ignores both reports can still leave the change out of its reply.
 - Only Claude Code's `Bash` tool is checked as it runs. A block changed by another tool, such as an MCP server's, is caught at the end of the reply.
 - The check after each `Bash` command adds about 0.2 s to it (median 203 ms over 20 runs on an Apple-silicon Mac, in a small repository).
 - Markers you haven't committed yet aren't protected.
@@ -77,10 +77,10 @@ Four hooks, which do nothing in a project without protected blocks:
 
 - **When you send a message:** records any `I approve editing protected section: <name>` line.
 - **Before `Edit`, `Write` or `MultiEdit` on a `.md` file:** works out the file's new text and blocks the edit if an unapproved protected block would change, be removed or renamed, or have its markers broken.
-- **After each `Bash` command, whether it succeeded or failed:** runs the end-of-reply check below and tells the agent at once about any unapproved change it hasn't been told about.
-- **When the agent finishes a reply:** compares protected blocks against the last commit and makes the agent report any unapproved change it hasn't been told about.
+- **After each `Bash` command, whether it succeeded or failed:** runs the end-of-reply check below and tells the agent at once about any unapproved change that neither check has reported yet.
+- **When the agent finishes a reply:** compares protected blocks against the last commit and makes the agent report any unapproved change the end-of-reply check hasn't reported yet, including one already reported after a command.
 
-Both checks share one record of what they reported. A change is a file, a block and the block's current text, so a change reported after a command isn't repeated at the end of the reply, an edit elsewhere in the file that only moves the block isn't reported, and a further edit to the block is. Once a block matches the last commit again, it is dropped from the record.
+The record of what each check reported identifies a change by its file, its block and the block's current text. So an edit elsewhere in the file that only moves the block isn't reported again, and a further edit to the block is. Once a block matches the last commit again, it is dropped from the record.
 
 Approvals and the record of reported changes are kept in `.git/canon-protected-sections/` of the repository the session started in, so they never show up in `git status`.
 

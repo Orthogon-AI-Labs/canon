@@ -7,7 +7,7 @@ Codex port copies on its own.
 Per-session state lives in the git directory of the repository the session started in
 (.git/canon-protected-sections/), so it never shows in git status:
 
-- <session_id>.json            violations the Stop hook has already reported
+- <session_id>.json            violations already reported, at Stop or after a Bash command
 - <session_id>.approvals.json  blocks the user approved with the approval phrase
 - <session_id>.repos.json      other repositories the session edited Markdown in
 """

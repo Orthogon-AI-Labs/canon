@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Stop hook: tell the agent when a turn left a canon protected block changed without approval.
+"""Tell the agent when a canon protected block changed without approval.
+
+Stop: at the end of each reply. PostToolUse and PostToolUseFailure on Bash: right
+after each shell command, successful or not, so the agent hears of a block it
+changed with sed or a script while it can still undo it.
 
 Runs check-protected-sections.py unchanged and translates its result for Claude
-Code. A Stop hook that exits 1 is a non-blocking error: its output never reaches
-the model. So on a violation this exits 2 with the report on stderr, which blocks
-the stop once and hands the report to the agent.
+Code. A hook that exits 1 is a non-blocking error: its output never reaches the
+model. So on a violation this exits 2 with the report on stderr: at Stop, that
+blocks the stop once; after a tool call, Claude Code shows it to the agent at once.
 
 Blocks the user approved in this session (recorded from their own prompt by
 protected-sections-guard.py) are passed to the checker with --allow, so an approved
@@ -14,11 +18,12 @@ run; this hook catches whatever else changed a block, such as Bash or the user.
 stop_hook_active is true when the agent is already continuing because a Stop hook
 blocked. The check is skipped then, so it blocks at most once per stop.
 
-Each violation is reported once per session. A violation is a file, a block, and
-the block's current text, so line shifts don't repeat a report but a further edit
-to the block does. Violations that clear are forgotten, so if one comes back it is
-reported again. The record lives in the git directory of the repository the session
-started in.
+Each violation is reported once per session, by whichever check sees it first: a
+violation reported after a Bash command isn't reported again at Stop. A violation is
+a file, a block, and the block's current text, so line shifts don't repeat a report
+but a further edit to the block does. Violations that clear are forgotten, so if one
+comes back it is reported again. The record lives in the git directory of the
+repository the session started in.
 
 It checks that repository, the one the hook runs in (the agent may have cd'd), every
 repository the edit guard saw a Markdown edit in this session, and their submodules.
@@ -155,22 +160,31 @@ def report_lines(failures: dict[Path, list[str]], first: Path | None) -> list[st
     return lines
 
 
-def block_reason(failures: list[str]) -> str:
+def block_reason(failures: list[str], after_tool: bool = False) -> str:
     phrases = approval_phrases(failures)
-    lines = ["[canon protected-sections] Protected Markdown blocks differ from HEAD, and the user hasn't approved them in this session:"]
+    lines = ["[canon protected-sections] " + ("After that command, p" if after_tool else "P")
+             + "rotected Markdown blocks differ from HEAD, and the user hasn't approved them in this session:"]
     lines.extend(failures)
     lines.append("")
-    lines.append("Before you finish, tell the user which protected block changed, by file and block name.")
-    lines.append("If you made the change, revert it, or ask the user to approve it by replying:")
+    if after_tool:
+        lines.append("If your command made the change, put the block's text back now, or ask the user to approve it by replying:")
+    else:
+        lines.append("Before you finish, tell the user which protected block changed, by file and block name.")
+        lines.append("If you made the change, revert it, or ask the user to approve it by replying:")
     lines.extend(phrases)
     lines.append("If you did not make the change (for example, the user edited the file), report it and leave it.")
-    lines.append("This check blocks once; your next reply ends the turn.")
+    if after_tool:
+        lines.append("Tell the user in your reply which protected block changed, by file and block name. "
+                     "This is the only report of this change.")
+    else:
+        lines.append("This check blocks once; your next reply ends the turn.")
     return "\n".join(lines)
 
 
 def main() -> int:
     hook_input = read_hook_input()
-    if hook_input.get("stop_hook_active") is True:
+    after_tool = hook_input.get("hook_event_name") in ("PostToolUse", "PostToolUseFailure")
+    if not after_tool and hook_input.get("stop_hook_active") is True:
         return 0
 
     session_id = hook_input.get("session_id")
@@ -212,7 +226,7 @@ def main() -> int:
         print(f"[canon protected-sections] per-session memory unavailable: {exc!r}", file=sys.stderr)
     if not new_failures:
         return 0
-    print(block_reason(report_lines(new_failures, roots[0] if roots else None)), file=sys.stderr)
+    print(block_reason(report_lines(new_failures, roots[0] if roots else None), after_tool), file=sys.stderr)
     if errors:
         print("\n".join(errors), file=sys.stderr)
     return 2

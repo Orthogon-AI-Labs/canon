@@ -73,7 +73,7 @@ When canon is installed as a Claude Code plugin, hooks enforce these rules:
 
 - An edit guard blocks `Edit`, `Write` and `MultiEdit` calls that would change, remove, rename or break a protected block from `HEAD`, unless the user approved that block in this session. When it blocks, tell the user which block you need to change and why, and ask for the approval phrase. Don't route around it with Bash or by removing the markers.
 - Approval counts only when the user writes "I approve editing protected section: <name>" in their own message, on a line or sentence of its own (names with spaces in quotes). It is recorded for the rest of the session and covers every block with that name.
-- A Stop hook reports any unapproved protected-block change that got through another way, once per session.
+- A check after each Bash command, and a Stop hook at the end of each reply, report any unapproved protected-block change that got through another way. Each change is reported once, by whichever check sees it first. When a report comes after a command, undo the change or ask the user for approval, and tell the user about it in your reply: it won't be reported again.
 
 ## Failure Meaning
 

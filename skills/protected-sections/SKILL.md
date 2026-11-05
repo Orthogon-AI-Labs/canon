@@ -47,7 +47,7 @@ Run this from the repository root:
 python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py
 ```
 
-If the protected checker has been copied into a project by the Codex installer, run:
+Use that copy whenever `${CLAUDE_PLUGIN_ROOT}` is set. Only in a workspace without the plugin, where the Codex installer from `archive/canon-full` copied the checker into the project, run:
 
 ```bash
 python3 .canon/codex/bin/check-protected-sections.py
@@ -56,7 +56,7 @@ python3 .canon/codex/bin/check-protected-sections.py
 To allow one explicitly approved block:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py --allow routing-invariant
+python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py --allow=routing-invariant
 ```
 
 ## Workflow
@@ -64,7 +64,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py --allow 
 1. For `/canon:protect`, wrap the exact Markdown block with balanced markers.
 2. For `/canon:check-protected`, run the checker.
 3. If the checker fails, report the file and protected block name.
-4. If the user approved a named block, rerun with `--allow <name>`.
+4. If the user approved a named block, rerun with `--allow=<name>`.
 5. Keep approval narrow. Approval for one block does not approve other protected blocks.
 
 ## Hooks (Claude Code)
@@ -72,7 +72,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/check-protected-sections.py --allow 
 When canon is installed as a Claude Code plugin, hooks enforce these rules:
 
 - An edit guard blocks `Edit`, `Write` and `MultiEdit` calls that would change, remove, rename or break a protected block from `HEAD`, unless the user approved that block in this session. When it blocks, tell the user which block you need to change and why, and ask for the approval phrase. Don't route around it with Bash or by removing the markers.
-- Approval counts only when the user writes "I approve editing protected section: <name>" in their own message. It is recorded for the rest of the session and covers that block only.
+- Approval counts only when the user writes "I approve editing protected section: <name>" in their own message, on a line or sentence of its own (names with spaces in quotes). It is recorded for the rest of the session and covers every block with that name.
 - A Stop hook reports any unapproved protected-block change that got through another way, once per session.
 
 ## Failure Meaning

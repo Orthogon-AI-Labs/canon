@@ -103,12 +103,9 @@ def block_reason(failures: list[str]) -> str:
     lines.extend(failures)
     lines.append("")
     lines.append("Before you finish, tell the user which protected block changed, by file and block name.")
-    lines.append(
-        "- If you made the change, revert it, or ask the user to approve it by replying with "
-        + " / ".join(f'"{phrase}"' for phrase in phrases)
-        + "."
-    )
-    lines.append("- If you did not make the change (for example, the user edited the file), report it and leave it.")
+    lines.append("If you made the change, revert it, or ask the user to approve it by replying:")
+    lines.extend(phrases)
+    lines.append("If you did not make the change (for example, the user edited the file), report it and leave it.")
     lines.append("This check blocks once; your next reply ends the turn.")
     return "\n".join(lines)
 

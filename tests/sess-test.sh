@@ -6,6 +6,7 @@ CLONE=${CANON_CLONE:-$(cd "$(dirname "$0")/.." && pwd)}
 SP=$1
 CMD=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(*[h["command"] for g in d["hooks"]["Stop"] for h in g["hooks"] if "protected-sections-stop-hook.py" in h.get("command","")])' $CLONE/hooks/hooks.json)
 export CLAUDE_PLUGIN_ROOT=$CLONE
+unset CLAUDE_PROJECT_DIR  # state then lives in the git dir of the hook's cwd, the test repo
 rm -rf $SP/sess && mkdir -p $SP/sess && cd $SP/sess && git -c init.defaultBranch=main init -q repo && cd repo
 git config user.email t@e.x; git config user.name t
 printf '<!-- canon:protected:start name="routing-invariant" -->\nRequests are always routed through the blue gateway.\n<!-- canon:protected:end -->\n' > NOTES.md

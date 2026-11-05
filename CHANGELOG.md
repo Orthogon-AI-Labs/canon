@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added the hook test suites (`tests/`) and a GitHub Actions workflow that runs them on Linux and macOS (system Python 3.9) and validates the plugin manifests on every pull request.
+- `check-protected-sections.py` (and so the `Stop` check) now sees protected-block changes it used to miss: in files with non-ASCII names, in files renamed with `git mv` (reported as removed from the old path), in `.MD` and other upper-case extensions, and in files that start with a byte order mark. A broken marker no longer hides changes to the file's other blocks: the checker reports the syntax error and then every block it can still find that was changed or removed. A merge conflict outside a protected block is no longer reported as a removed block. Block names that aren't valid UTF-8 are printed escaped instead of crashing the checker under a UTF-8 locale. Exit codes and line formats are unchanged.
 
 ## 0.6.0 - 2026-10-15
 

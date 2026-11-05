@@ -25,6 +25,7 @@ def find_hook(event, script):
 GUARD = find_hook("PreToolUse", "protected-sections-guard.py")
 RECORD = find_hook("UserPromptSubmit", "protected-sections-guard.py")
 STOP = find_hook("Stop", "protected-sections-stop-hook.py")
+AFTER = {event: find_hook(event, "protected-sections-stop-hook.py") for event in ["PostToolUse", "PostToolUseFailure"]}
 ENV = {**os.environ, "CLAUDE_PLUGIN_ROOT": str(CLONE)}
 ENV.pop("PYTHONDONTWRITEBYTECODE", None)
 ENV.pop("CLAUDE_PROJECT_DIR", None)  # set per test below; hooks fall back to their cwd without it
@@ -369,6 +370,78 @@ p = run(GUARD, {"hook_event_name": "PreToolUse", "session_id": "gone", "tool_nam
                 "tool_input": edit("three", "four")}, REPO, env={**ENV, "CLAUDE_PLUGIN_ROOT": str(WORK / "gone")})[0]
 expect("...and the guard exits 1 (python exits 2 for a missing script, which would block every edit)", p.returncode, 1)
 expect("the Stop hook doesn't start a login shell", "bash -l" in STOP, False)
+
+print("== Check after each Bash command")
+expect("the after-command checks match only Bash", [grp.get("matcher") for event in AFTER for grp in hooks[event]], ["Bash", "Bash"])
+sh = new_repo(WORK / "bash", {"NOTES.md": BASE, "app.js": "limit = 60\n"})
+SH_NOTES = sh / "NOTES.md"
+
+
+def after_bash(session, failed=False, cwd=None):
+    event = "PostToolUseFailure" if failed else "PostToolUse"
+    payload = {"hook_event_name": event, "session_id": session, "tool_name": "Bash", "tool_use_id": "toolu_1",
+               "tool_input": {"command": "sed -i '' s/blue/green/ NOTES.md && npm test"}}
+    payload.update({"error": "Exit code 1", "is_interrupt": False, "is_timeout": False} if failed
+                   else {"tool_response": {"stdout": "", "stderr": "", "interrupted": False}})
+    return run(AFTER[event], payload, cwd or sh, env={**ENV, "CLAUDE_PROJECT_DIR": str(sh)})
+
+
+p, elapsed = after_bash("b1")
+expect("command that changes no Markdown: nothing reported", (p.returncode, p.stderr), (0, ""))
+print(f"      after-command check latency: {elapsed * 1000:.0f} ms")
+SH_NOTES.write_text(BASE.replace("blue gateway", "green gateway"))
+p, _ = after_bash("b1")
+expect("command that changed a block: reported at once (exit 2, block named)",
+       (p.returncode, '"routing-invariant"' in p.stderr, "After that command" in p.stderr), (2, True, True), p.stderr)
+expect("...with the approval phrase on a line of its own", "I approve editing protected section: routing-invariant" in p.stderr.splitlines(), True)
+expect("...and only that block", "other-block" in p.stderr, False)
+print("      reason: " + p.stderr.strip().replace("\n", "\n              "))
+p, _ = after_bash("b1")
+expect("next command, same change: not reported again", (p.returncode, p.stderr), (0, ""))
+p = stop_at(sh, "b1", sh)
+expect("end of reply, same change: raised once more before the agent finishes",
+       (p.returncode, '"routing-invariant"' in p.stderr, "Before you finish" in p.stderr), (2, True, True), p.stderr)
+p = stop_at(sh, "b1", sh)
+expect("next end of reply: not again", (p.returncode, p.stderr), (0, ""))
+p, _ = after_bash("b1")
+expect("next command after that: not again", (p.returncode, p.stderr), (0, ""))
+(sh / "app.js").write_text("limit = 120\n")
+SH_NOTES.write_text("# Moved down\n\n" + BASE.replace("blue gateway", "green gateway"))
+p, _ = after_bash("b1")
+expect("lines shifted, block text the same: not reported again", p.returncode, 0, p.stderr)
+SH_NOTES.write_text(BASE.replace("blue gateway", "red gateway"))
+p, _ = after_bash("b1", failed=True)
+expect("failed command that changed the block further: reported again", (p.returncode, '"routing-invariant"' in p.stderr), (2, True), p.stderr)
+p = stop_at(sh, "b1", sh)
+expect("...and raised again at the end of the reply", p.returncode, 2, p.stderr)
+p, _ = after_bash("b1")
+expect("...and after that, a command doesn't repeat it", p.returncode, 0, p.stderr)
+p = stop_at(sh, "b2", sh)
+expect("another session: reported at its own end of reply", p.returncode, 2)
+p, _ = after_bash("b2")
+expect("...and not repeated after its next command (next turn)", p.returncode, 0, p.stderr)
+record = json.loads((sh / ".git/canon-protected-sections/b2.json").read_text())
+expect("the record keeps each check's reports apart", sorted(record), ["after_command", "reported"])
+subprocess.run(["git", "checkout", "-q", "--", "NOTES.md"], cwd=sh, check=True)
+p, _ = after_bash("b1")
+expect("block restored: nothing reported", p.returncode, 0, p.stderr)
+expect("...and the session's record cleared", (sh / ".git/canon-protected-sections/b1.json").exists(), False)
+SH_NOTES.write_text(BASE.replace("blue gateway", "red gateway"))
+p, _ = after_bash("b1")
+expect("the same change coming back: reported again", p.returncode, 2, p.stderr)
+SH_NOTES.write_text(BASE.replace("three", "five"))
+run(RECORD, {"hook_event_name": "UserPromptSubmit", "session_id": "b3", "prompt": "I approve editing protected section: other-block"},
+    sh, env={**ENV, "CLAUDE_PROJECT_DIR": str(sh)})
+p, _ = after_bash("b3")
+expect("approved block changed by a command: not reported", (p.returncode, p.stderr), (0, ""))
+p, _ = after_bash("b4", cwd=WORK)
+expect("cwd outside git: the session's repo is still checked", (p.returncode, '"other-block"' in p.stderr), (2, True), p.stderr)
+p = run(AFTER["PostToolUse"], {"hook_event_name": "PostToolUse", "session_id": "gone", "tool_name": "Bash"}, sh,
+        env={**ENV, "CLAUDE_PLUGIN_ROOT": str(WORK / "gone")})[0]
+expect("plugin files missing: the after-command check exits 1, which the agent doesn't see", p.returncode, 1)
+subprocess.run(["git", "checkout", "-q", "--", "NOTES.md"], cwd=sh, check=True)
+expect("state files never show in git status", subprocess.run(["git", "status", "--short"], cwd=sh, capture_output=True,
+       text=True).stdout, " M app.js\n")
 
 print("== Guard failure is a non-blocking error, not a block")
 import importlib.util

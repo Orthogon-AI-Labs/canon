@@ -14,7 +14,8 @@ user's prompt is read, so the agent can't approve an edit on the user's behalf.
 
 When the guard can't tell what an edit does (an old_string it can't find, a file
 outside git, its own error), it allows the call. The Stop hook still checks the
-result, and it also catches changes made some other way, such as through Bash.
+result, and it also catches changes made some other way, such as through Bash
+(which it checks after each command too).
 """
 
 from __future__ import annotations

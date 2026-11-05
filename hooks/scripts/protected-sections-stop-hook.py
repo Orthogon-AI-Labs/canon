@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Stop hook: tell the agent when a turn left a canon protected block changed without approval.
+"""Tell the agent when a canon protected block changed without approval.
+
+Stop: at the end of each reply. PostToolUse and PostToolUseFailure on Bash: right
+after each shell command, successful or not, so the agent hears of a block it
+changed with sed or a script while it can still undo it.
 
 Runs check-protected-sections.py unchanged and translates its result for Claude
-Code. A Stop hook that exits 1 is a non-blocking error: its output never reaches
-the model. So on a violation this exits 2 with the report on stderr, which blocks
-the stop once and hands the report to the agent.
+Code. A hook that exits 1 is a non-blocking error: its output never reaches the
+model. So on a violation this exits 2 with the report on stderr: at Stop, that
+blocks the stop once; after a tool call, Claude Code shows it to the agent at once.
 
 Blocks the user approved in this session (recorded from their own prompt by
 protected-sections-guard.py) are passed to the checker with --allow, so an approved
@@ -14,8 +18,11 @@ run; this hook catches whatever else changed a block, such as Bash or the user.
 stop_hook_active is true when the agent is already continuing because a Stop hook
 blocked. The check is skipped then, so it blocks at most once per stop.
 
-Each violation is reported once per session. A violation is a file, a block, and
-the block's current text, so line shifts don't repeat a report but a further edit
+Each violation is reported at most once per session by each kind of check: once after
+the first Bash command that sees it, and once at Stop, so a change the agent heard of
+mid-reply is still raised before it finishes. After a command, a violation already
+reported at Stop (in an earlier turn) isn't repeated. A violation is a file, a block,
+and the block's current text, so line shifts don't repeat a report but a further edit
 to the block does. Violations that clear are forgotten, so if one comes back it is
 reported again. The record lives in the git directory of the repository the session
 started in.
@@ -119,29 +126,42 @@ def violation_key(checker, root: Path, failure: str) -> str:
     return "\0".join([root.as_posix(), match["kind"], path.as_posix(), name, state])
 
 
-def load_reported(path: Path | None) -> set[str]:
+# What each check has reported: "reported" at Stop, "after_command" after a Bash command.
+RECORDS = ("reported", "after_command")
+
+
+def load_reported(path: Path | None) -> dict[str, set[str]]:
     data = read_json(path)
-    reported = data.get("reported") if isinstance(data, dict) else None
-    if not isinstance(reported, list):
-        return set()
-    return {key for key in reported if isinstance(key, str)}
+    record = {}
+    for field in RECORDS:
+        keys = data.get(field) if isinstance(data, dict) else None
+        record[field] = {key for key in keys if isinstance(key, str)} if isinstance(keys, list) else set()
+    return record
 
 
-def save_reported(path: Path | None, keys: set[str]) -> None:
-    """Record the violations reported so far. If this fails, the next stop reports them again."""
-    if keys:
-        write_json(path, {"reported": sorted(keys)})
+def save_reported(path: Path | None, record: dict[str, set[str]]) -> None:
+    """Record the violations reported so far. If this fails, the next check reports them again."""
+    if any(record.values()):
+        write_json(path, {field: sorted(keys) for field, keys in record.items() if keys})
     else:
         delete(path)
 
 
-def unreported(failures: dict[Path, list[str]], state: Path | None) -> dict[Path, list[str]]:
-    """Record the current violations for this session and return the ones not reported before."""
+def unreported(failures: dict[Path, list[str]], state: Path | None, after_tool: bool) -> dict[Path, list[str]]:
+    """Record the current violations for this session and return the ones this check should report.
+
+    Stop reports each violation once, even one already reported after a command, so the
+    agent is reminded before it finishes. After a command, a violation either check has
+    already reported isn't repeated. Both forget violations that have cleared.
+    """
     checker = load_checker()
     keyed = {root: [(failure, violation_key(checker, root, failure)) for failure in lines] for root, lines in failures.items()}
-    reported = load_reported(state)
-    save_reported(state, {key for pairs in keyed.values() for _, key in pairs})
-    new = {root: [failure for failure, key in pairs if key not in reported] for root, pairs in keyed.items()}
+    current = {key for pairs in keyed.values() for _, key in pairs}
+    record = {field: keys & current for field, keys in load_reported(state).items()}
+    seen = record["reported"] | record["after_command"] if after_tool else record["reported"]
+    record["after_command" if after_tool else "reported"] = current
+    save_reported(state, record)
+    new = {root: [failure for failure, key in pairs if key not in seen] for root, pairs in keyed.items()}
     return {root: lines for root, lines in new.items() if lines}
 
 
@@ -155,22 +175,30 @@ def report_lines(failures: dict[Path, list[str]], first: Path | None) -> list[st
     return lines
 
 
-def block_reason(failures: list[str]) -> str:
+def block_reason(failures: list[str], after_tool: bool = False) -> str:
     phrases = approval_phrases(failures)
-    lines = ["[canon protected-sections] Protected Markdown blocks differ from HEAD, and the user hasn't approved them in this session:"]
+    lines = ["[canon protected-sections] " + ("After that command, p" if after_tool else "P")
+             + "rotected Markdown blocks differ from HEAD, and the user hasn't approved them in this session:"]
     lines.extend(failures)
     lines.append("")
-    lines.append("Before you finish, tell the user which protected block changed, by file and block name.")
-    lines.append("If you made the change, revert it, or ask the user to approve it by replying:")
+    if after_tool:
+        lines.append("If your command made the change, put the block's text back now, or ask the user to approve it by replying:")
+    else:
+        lines.append("Before you finish, tell the user which protected block changed, by file and block name.")
+        lines.append("If you made the change, revert it, or ask the user to approve it by replying:")
     lines.extend(phrases)
     lines.append("If you did not make the change (for example, the user edited the file), report it and leave it.")
-    lines.append("This check blocks once; your next reply ends the turn.")
+    if after_tool:
+        lines.append("Tell the user in your reply which protected block changed, by file and block name.")
+    else:
+        lines.append("This check blocks once; your next reply ends the turn.")
     return "\n".join(lines)
 
 
 def main() -> int:
     hook_input = read_hook_input()
-    if hook_input.get("stop_hook_active") is True:
+    after_tool = hook_input.get("hook_event_name") in ("PostToolUse", "PostToolUseFailure")
+    if not after_tool and hook_input.get("stop_hook_active") is True:
         return 0
 
     session_id = hook_input.get("session_id")
@@ -201,18 +229,18 @@ def main() -> int:
             return 1
         if checked:
             # Intact. Forget anything reported earlier, so a violation that comes back is reported again.
-            save_reported(state, set())
+            save_reported(state, {})
         return 0
 
     try:
-        new_failures = unreported(failures, state)
+        new_failures = unreported(failures, state, after_tool)
     except Exception as exc:
         # The memory only suppresses repeats. If it breaks, report everything rather than nothing.
         new_failures = failures
         print(f"[canon protected-sections] per-session memory unavailable: {exc!r}", file=sys.stderr)
     if not new_failures:
         return 0
-    print(block_reason(report_lines(new_failures, roots[0] if roots else None)), file=sys.stderr)
+    print(block_reason(report_lines(new_failures, roots[0] if roots else None), after_tool), file=sys.stderr)
     if errors:
         print("\n".join(errors), file=sys.stderr)
     return 2

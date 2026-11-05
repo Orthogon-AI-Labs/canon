@@ -2,8 +2,9 @@
 """Stop Edit/Write calls from changing a canon protected block without the user's approval.
 
 PreToolUse (Edit, Write, MultiEdit): work out what a Markdown file would contain after
-the edit and deny the call if it changes an unapproved protected block's text, removes
-or renames the block, or breaks its markers. A block is protected when it exists in
+the edit (as Claude Code's Edit tool writes it; see claude_edit.py) and deny the call if
+it changes an unapproved protected block's text, removes or renames the block, or breaks
+its markers. Every block is checked, even when other markers in the file are broken. A block is protected when it exists in
 HEAD, the same baseline check-protected-sections.py uses. An edit that leaves a block
 as it already was, or restores it to HEAD, is allowed.
 
@@ -19,12 +20,14 @@ result, and it also catches changes made some other way, such as through Bash.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # keep __pycache__ out of the plugin directory
 
+from claude_edit import apply_edits
 from canon_protected import (
     approval_phrases,
     load_approvals,
@@ -38,95 +41,104 @@ from canon_protected import (
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit"}
 
 
-def proposed_text(tool: str, tool_input: dict, current: str) -> str | None:
-    """The file's text after the tool call, or None if the tool would reject the call."""
+def proposed_text(tool: str, tool_input: dict, current: str | None) -> str | None:
+    """The file's text after the tool call, or None if the tool would reject the call.
+
+    current is the file as it is now (None if it doesn't exist). Line endings are
+    normalised the way check-protected-sections.py reads files, so the result compares
+    with HEAD the same way the Stop check will.
+    """
     if tool == "Write":
         content = tool_input.get("content")
-        return content if isinstance(content, str) else None
-
-    edits = [tool_input] if tool == "Edit" else tool_input.get("edits")
-    if not isinstance(edits, list):
-        return None
-    text = current
-    for edit in edits:
-        if not isinstance(edit, dict):
+        text = content if isinstance(content, str) else None
+    else:
+        edits = [tool_input] if tool == "Edit" else tool_input.get("edits")
+        if not isinstance(edits, list):
             return None
-        old, new = edit.get("old_string"), edit.get("new_string")
-        if not isinstance(old, str) or not isinstance(new, str):
-            return None
-        if old == "":
-            # An empty old_string only creates a file that doesn't exist yet.
-            if text:
+        steps = []
+        for edit in edits:
+            if not isinstance(edit, dict):
                 return None
-            text = new
-            continue
-        count = text.count(old)
-        replace_all = edit.get("replace_all") is True
-        if count == 0 or (count > 1 and not replace_all):
-            return None
-        text = text.replace(old, new) if replace_all else text.replace(old, new, 1)
-    return text
+            old, new = edit.get("old_string"), edit.get("new_string")
+            if not isinstance(old, str) or not isinstance(new, str):
+                return None
+            steps.append((old, new, edit.get("replace_all") is True))
+        text = apply_edits(current, steps)
+    return None if text is None else universal_newlines(text)
 
 
-def find_root(checker, path: Path) -> Path | None:
-    directory = path.parent
+def universal_newlines(text: str) -> str:
+    return text.replace("\r\n", "\n").replace("\r", "\n")
+
+
+def locate(checker, path: Path) -> tuple[Path, Path] | None:
+    """The file's repository root and its path there in git's spelling, or None outside git."""
+    directory, tail = path.parent, [path.name]
     while not directory.exists() and directory != directory.parent:
+        tail.insert(0, directory.name)
         directory = directory.parent
     try:
-        return Path(checker.run_git(["rev-parse", "--show-toplevel"], directory).stdout.strip())
+        # git reports the directory's real spelling, even when the path used another case.
+        lines = checker.run_git(["rev-parse", "--show-toplevel", "--show-prefix"], directory).stdout.split("\n")
     except subprocess.CalledProcessError:
         return None
+    root, relative = Path(lines[0]), Path(lines[1] if len(lines) > 1 else "", *tail)
+    if path.exists():
+        # On a case-insensitive filesystem NOTES.md opens the tracked notes.md.
+        listed = checker.run_git(["ls-files", "-z", "--", f":(icase,literal){relative.as_posix()}"], root, check=False)
+        names = [name for name in listed.stdout.split("\0") if name]
+        if relative.as_posix() not in names:
+            same = [name for name in names if os.path.samefile(root / name, path)]
+            if len(same) == 1:
+                relative = Path(same[0])
+    return root, relative
 
 
-def body_of(blocks: dict | None, name: str) -> str | None:
-    if blocks is None:
-        return None
-    block = blocks.get(name)
-    return None if block is None else block.body
+def bodies(checker, text: str) -> dict[str, list[str]]:
+    """The body of every block in text by name, found even when other markers are broken."""
+    return {name: [block.body for block in found] for name, found in checker.parse_blocks_lenient(text).items()}
 
 
 def denied_changes(tool: str, tool_input: dict, path: Path, approved: set[str]) -> list[str]:
     checker = load_checker()
-    root = find_root(checker, path)
-    if root is None:
+    located = locate(checker, path)
+    if located is None:
         return []
-    try:
-        relative = path.resolve().relative_to(root.resolve())
-    except ValueError:
-        return []
+    root, relative = located
 
-    try:
-        head_blocks = checker.parse_blocks(checker.read_head(root, relative))
-    except checker.ParseError:
-        return []  # HEAD's markers are already broken; the Stop hook reports that.
-    protected = {name: block for name, block in head_blocks.items() if name not in approved}
+    # A name that appears twice in HEAD has no single baseline; the Stop check reports it.
+    protected = {
+        name: found[0] for name, found in bodies(checker, checker.read_head(root, relative)).items()
+        if len(found) == 1 and name not in approved
+    }
     if not protected:
         return []
 
-    current = checker.read_worktree(root, relative)
-    proposed = proposed_text(tool, tool_input, current)
+    raw = path.read_bytes().decode("utf-8", "surrogateescape") if path.is_file() else None
+    proposed = proposed_text(tool, tool_input, raw)
     if proposed is None:
         return []
-
-    try:
-        current_blocks = checker.parse_blocks(current)
-    except checker.ParseError:
-        current_blocks = None
-    try:
-        proposed_blocks = checker.parse_blocks(proposed)
-    except checker.ParseError as exc:
-        if current_blocks is None or exc.block_name in approved:
-            return []
-        return [f"{relative}: would break protected block markers ({exc})"]
+    current = universal_newlines(raw or "")
+    current_blocks, proposed_blocks = bodies(checker, current), bodies(checker, proposed)
 
     changes: list[str] = []
-    for name, head_block in protected.items():
-        new_body = body_of(proposed_blocks, name)
-        if new_body == head_block.body:
+    for name, head_body in protected.items():
+        found = proposed_blocks.get(name, [])
+        if found == [head_body]:
             continue  # intact, or restored to HEAD
-        if current_blocks is not None and new_body == body_of(current_blocks, name):
-            continue  # this call leaves the block as it already was
-        action = "remove or rename" if new_body is None else "change"
+        if found == current_blocks.get(name, []):
+            if found:
+                continue  # this call leaves the block as it already was
+            # The block's markers are already broken, so find its text instead. An empty body
+            # can't be found that way, and counts as changed.
+            if head_body and current.count(head_body) == proposed.count(head_body):
+                continue
+        if not found:
+            action = "remove, rename or break the markers of"
+        elif len(found) > 1:
+            action = "duplicate"
+        else:
+            action = "change"
         changes.append(f'{relative}: would {action} protected block "{name}"')
     return changes
 
@@ -150,10 +162,12 @@ def guard_tool_call(hook_input: dict) -> int:
     if tool not in EDIT_TOOLS or not isinstance(tool_input, dict):
         return 0
     file_path = tool_input.get("file_path")
-    if not isinstance(file_path, str) or not file_path.endswith(".md"):
+    if not isinstance(file_path, str) or not file_path.lower().endswith(".md"):
         return 0
     try:
-        changes = denied_changes(tool, tool_input, Path(file_path), load_approvals(hook_input.get("session_id")))
+        # Lexically, as Claude Code resolves it: "dir/../x.md" is x.md even if dir is a symlink.
+        path = Path(os.path.abspath(file_path))
+        changes = denied_changes(tool, tool_input, path, load_approvals(hook_input.get("session_id")))
     except Exception as exc:
         # Allow rather than block every edit on a guard bug; the Stop hook still checks.
         print(f"[canon protected-sections] edit guard skipped: {exc!r}", file=sys.stderr)

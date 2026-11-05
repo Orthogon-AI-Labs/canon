@@ -183,6 +183,91 @@ p = stop("s4")
 expect("corrupt approvals file: treated as no approvals", p.returncode, 2)
 NOTES.write_text(BASE)
 
+def committed(name, text):
+    path = REPO / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(text.encode("utf-8", "surrogateescape"))
+    git("add", "--", name)
+    git("commit", "-qm", name)
+    return str(path)
+
+
+blk = lambda name, body: f'<!-- canon:protected:start name="{name}" -->\n{body}\n<!-- canon:protected:end -->\n'
+ed = lambda f, old, new, **kw: {"file_path": f, "old_string": old, "new_string": new, **kw}
+
+print("== The text Claude Code's Edit really writes")
+f = committed("voice.md", "## Voice rules (draft)\n" + blk("voice", "Write plainly.") + "TODO\n")
+guard("empty new_string also deletes the newline: start marker joined to the heading", "deny", "Edit", ed(f, " (draft)", ""))
+guard("empty new_string on a line outside any block", "allow", "Edit", ed(f, "TODO", ""))
+f = committed("todo.md", blk("e", "TODO later") + "TODO\n")
+guard("replace_all 'TODO' -> '': only 'TODO\\n' goes, the block is untouched", "allow", "Edit", ed(f, "TODO", "", replace_all=True))
+f = committed("curly.md", blk("q", "Always use the “blue” gateway.") + "Outside: the “red” one.\n")
+guard("straight-quoted old_string matching curly quotes in a block", "deny", "Edit", ed(f, 'the "blue" gateway', 'the "green" gateway'))
+guard("...and outside the block", "allow", "Edit", ed(f, 'the "red" one', 'the "pink" one'))
+f = committed("escaped.md", blk("u", "Served at the caf\\u00e9.") + "Outside: na\\u00efve.\n")
+guard("old_string 'café' matching the escape caf\\u00e9 in a block", "deny", "Edit", ed(f, "the café", "the bar"))
+guard("...and outside the block", "allow", "Edit", ed(f, "naïve", "simple"))
+f = committed("accent.md", blk("u", "Served at the café."))
+guard("old_string with the escape caf\\u00e9 matching 'é' in a block", "deny", "Edit", ed(f, "caf\\u00e9", "bar"))
+f = committed("crlf.md", ("# T\n\n" + blk("crlf", "Line one.\nLine two.") + "Footer.\n").replace("\n", "\r\n"))
+guard("CRLF file: two-line Edit inside the block", "deny", "Edit", ed(f, "Line one.\nLine two.", "Line one.\nLine 2."))
+guard("CRLF file: Write with LF line endings, same block text", "allow", "Write", {"file_path": f, "content": "# New\n\n" + blk("crlf", "Line one.\nLine two.")})
+f = committed("mixed.md", "# T\na\nb\nc\nd\n\n" + blk("m", "Pasted.").replace("\n", "\r\n") + "\nFooter.\n")
+guard("mostly-LF file with a CRLF block: Edit outside the block", "allow", "Edit", ed(f, "Footer.", "Footer!"))
+
+print("== Broken markers don't switch the guard off")
+TWO = blk("a", "A body.") + "\n" + blk("b", "B must never change.")
+f = committed("two.md", TWO)
+prompt("I approve editing protected section: a", session="sa")
+guard("a approved: Write rewriting b and leaving a dangling start marker for a", "deny", "Write",
+      {"file_path": f, "content": TWO.replace("never", "now") + '<!-- canon:protected:start name="a" -->\n'}, session="sa")
+guard("a approved: MultiEdit rewriting b and deleting a's end marker", "deny", "MultiEdit", {"file_path": f, "edits": [
+    {"old_string": "never", "new_string": "now"}, {"old_string": "A body.\n<!-- canon:protected:end -->\n", "new_string": "A body.\n"}]}, session="sa")
+guard("a approved: one Edit deleting a's end marker and rewriting b", "deny", "Edit",
+      ed(f, "A body.\n<!-- canon:protected:end -->\n\n<!-- canon:protected:start name=\"b\" -->\nB must never",
+         "A body.\n\n<!-- canon:protected:start name=\"b\" -->\nB must now"), session="sa")
+guard("a approved: deleting a's end marker, b untouched", "allow", "Edit", ed(f, "A body.\n<!-- canon:protected:end -->\n", "A body.\n"), session="sa")
+guard("no approvals: deleting a's end marker", "deny", "Edit", ed(f, "A body.\n<!-- canon:protected:end -->\n", "A body.\n"))
+Path(f).write_text(TWO.replace("A body.\n<!-- canon:protected:end -->\n", "A body.\n"))  # the user broke a's markers
+guard("a already broken: Edit rewriting b", "deny", "Edit", ed(f, "never", "now"))
+guard("a already broken: Write replacing the whole file", "deny", "Write", {"file_path": f, "content": "Gone.\n<!-- canon:protected:end -->\n"})
+guard("a already broken: Edit changing a's text", "deny", "Edit", ed(f, "A body.", "A rewritten."))
+Path(f).write_text(TWO.replace("A body.\n<!-- canon:protected:end -->\n", "A body.\n") + "Footer.\n")
+guard("a already broken: Edit outside both blocks", "allow", "Edit", ed(f, "Footer.", "Footer!"))
+f = committed("chain.md", "## Voice (draft)\n" + blk("voice", "Write plainly.") + "\n" + blk("rules", "Use the blue gateway."))
+Path(f).write_text(Path(f).read_text().replace(" (draft)\n", ""))  # what the real Edit wrote before this fix
+guard("start marker already joined to a heading: Edit rewriting another block", "deny", "Edit", ed(f, "blue", "green"))
+f = committed("dup.md", blk("dup", "One.") + blk("dup", "Two.") + blk("solo", "Alone."))
+guard("HEAD has a repeated name: the file's other blocks are still guarded", "deny", "Edit", ed(f, "Alone.", "Changed."))
+f = committed("stray.md", "<!-- canon:protected:end -->\n" + blk("s", "Kept."))
+guard("HEAD has a stray end marker: the block is still guarded", "deny", "Edit", ed(f, "Kept.", "Changed."))
+f = committed("bom.md", "﻿" + blk("b", "Keep this."))
+guard("byte order mark before a first-line start marker", "deny", "Edit", ed(f, "Keep this.", "Changed."))
+
+print("== Adding and documenting markers")
+f = committed("add.md", blk("keep", "Kept.") + "\nFooter.\n")
+guard("step 1 of protecting a new section: start marker only", "allow", "Edit",
+      ed(f, "Footer.", '<!-- canon:protected:start name="footer" -->\nFooter.'))
+guard("a fenced example holding only an end marker", "allow", "Edit",
+      ed(f, "Footer.\n", "Footer.\n\nClose a block with:\n\n```markdown\n<!-- canon:protected:end -->\n```\n"))
+
+print("== Paths that name a protected file")
+git("checkout", "-q", "--", ".")  # drop the broken-marker states above
+f = committed("GUIDE.MD", blk("g", "Original."))
+guard("upper-case extension GUIDE.MD", "deny", "Edit", ed(f, "Original.", "Changed."))
+guard("relative path, resolved against the session's cwd", "deny", "Edit", ed("NOTES.md", "blue gateway", "green gateway"), session="s5")
+(REPO / "linkdir").symlink_to(WORK)
+guard("linkdir/../NOTES.md with linkdir a symlink out of the repo (resolved lexically, as Claude Code does)", "deny",
+      "Edit", ed(str(REPO / "linkdir" / ".." / "NOTES.md"), "blue gateway", "green gateway"), session="s5")
+(REPO / "linkdir").unlink()
+committed("docs/guide.md", blk("g2", "Use the blue gateway."))
+insensitive = (REPO / "notes.md").exists()
+print(f"      case-insensitive filesystem: {insensitive}")
+for variant in [REPO / "notes.md", REPO / "NOTES.MD", REPO / "Docs" / "guide.md", REPO.parent / "REPO" / "NOTES.md"]:
+    guard(f"case variant {variant.relative_to(WORK)}: {'same file' if insensitive else 'another file'}",
+          "deny" if insensitive else "allow", "Edit", ed(str(variant), "blue gateway", "green gateway"), session="s5")
+expect("tests left no changes", git("status", "--short").stdout, "")
+
 print("== Guard failure is a non-blocking error, not a block")
 import importlib.util
 import io

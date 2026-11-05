@@ -11,6 +11,8 @@
 - canon prints a block name in quotes when it has spaces or punctuation (`I approve editing protected section: "two words"`), so the phrase it shows reads back as the same name. The `Stop` message puts the phrase on a line of its own instead of in quotes.
 - Approvals and the `Stop` hook's memory are kept in the repository the session started in (`CLAUDE_PROJECT_DIR`), not the hook's current directory, so an approval still applies after the agent `cd`s into another repository.
 - The recorder no longer says it couldn't record an approval when it did (a failure while removing old state files was reported as a failed write).
+- The `Stop` check now covers every repository the session works in: the one it started in, the hook's current one, any repository the edit guard saw a Markdown edit in, and their submodules. It used to check only the repository of the hook's current directory, which follows the agent's `cd`. Reports from another repository appear under an `In <path>:` heading.
+- The `Stop` hook runs `python3` directly instead of through `bash -lc`, so a login profile can no longer move it out of the repository or replace the shell. If the plugin's files are missing (for example after an update replaced them), the `Stop` hook and the edit guard now exit 1, a non-blocking error; the guard used to exit 2, which blocked every edit.
 
 ## 0.6.0 - 2026-10-15
 

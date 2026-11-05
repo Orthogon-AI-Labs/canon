@@ -35,6 +35,7 @@ from canon_protected import (
     parse_approvals,
     read_hook_input,
     record_approvals,
+    remember_repo,
 )
 
 
@@ -99,12 +100,13 @@ def bodies(checker, text: str) -> dict[str, list[str]]:
     return {name: [block.body for block in found] for name, found in checker.parse_blocks_lenient(text).items()}
 
 
-def denied_changes(tool: str, tool_input: dict, path: Path, approved: set[str]) -> list[str]:
+def denied_changes(tool: str, tool_input: dict, path: Path, approved: set[str], session_id: object = None) -> list[str]:
     checker = load_checker()
     located = locate(checker, path)
     if located is None:
         return []
     root, relative = located
+    remember_repo(session_id, root)
 
     # A name that appears twice in HEAD has no single baseline; the Stop check reports it.
     protected = {
@@ -167,7 +169,8 @@ def guard_tool_call(hook_input: dict) -> int:
     try:
         # Lexically, as Claude Code resolves it: "dir/../x.md" is x.md even if dir is a symlink.
         path = Path(os.path.abspath(file_path))
-        changes = denied_changes(tool, tool_input, path, load_approvals(hook_input.get("session_id")))
+        session_id = hook_input.get("session_id")
+        changes = denied_changes(tool, tool_input, path, load_approvals(session_id), session_id)
     except Exception as exc:
         # Allow rather than block every edit on a guard bug; the Stop hook still checks.
         print(f"[canon protected-sections] edit guard skipped: {exc!r}", file=sys.stderr)

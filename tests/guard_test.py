@@ -43,10 +43,10 @@ BASE = (
 results = []
 
 
-def run(command, payload, cwd):
+def run(command, payload, cwd, env=None):
     started = time.time()
     proc = subprocess.run(["bash", "-c", command], input=payload if isinstance(payload, str) else json.dumps(payload),
-                          text=True, capture_output=True, cwd=cwd, env=ENV)
+                          text=True, capture_output=True, cwd=cwd, env=env or ENV)
     return proc, time.time() - started
 
 
@@ -308,6 +308,67 @@ for variant in [REPO / "notes.md", REPO / "NOTES.MD", REPO / "Docs" / "guide.md"
     guard(f"case variant {variant.relative_to(WORK)}: {'same file' if insensitive else 'another file'}",
           "deny" if insensitive else "allow", "Edit", ed(str(variant), "blue gateway", "green gateway"), session="s5")
 expect("tests left no changes", git("status", "--short").stdout, "")
+
+print("== Stop hook: every repository the session works in")
+
+
+def new_repo(path, files):
+    path.mkdir(parents=True)
+    g = lambda *a: subprocess.run(["git", *a], cwd=path, check=True, capture_output=True, text=True)
+    g("-c", "init.defaultBranch=main", "init", "-q")
+    g("config", "user.email", "t@e.x")
+    g("config", "user.name", "t")
+    for name, text in files.items():
+        (path / name).write_bytes(text if isinstance(text, bytes) else text.encode())
+    g("add", ".")
+    g("commit", "-qm", "base")
+    return path
+
+
+def stop_at(cwd, session, project, **env):
+    return run(STOP, {"hook_event_name": "Stop", "session_id": session, "stop_hook_active": False}, cwd,
+               env={**ENV, "CLAUDE_PROJECT_DIR": str(project), **env})[0]
+
+
+main = new_repo(WORK / "multi" / "main", {"NOTES.md": blk("m", "Main.")})
+sibling = new_repo(WORK / "multi" / "sibling", {"NOTES.md": blk("s", "Sibling.")})
+lib = new_repo(main / "vendor" / "lib", {"README.md": "# lib\n"})
+(main / "NOTES.md").write_text(blk("m", "Main, rewritten by Bash."))
+p = stop_at(lib, "m1", main)
+expect("after `cd` into a nested repo, the session's repo is still checked", (p.returncode, '"m"' in p.stderr), (2, True), p.stderr)
+subprocess.run(["git", "checkout", "-q", "--", "NOTES.md"], cwd=main, check=True)
+run(GUARD, {"hook_event_name": "PreToolUse", "session_id": "m2", "tool_name": "Edit", "tool_input": ed(
+    str(sibling / "NOTES.md"), "Sibling.", "Changed.")}, main, env={**ENV, "CLAUDE_PROJECT_DIR": str(main)})
+(sibling / "NOTES.md").write_text(blk("s", "Sibling, rewritten by Bash."))
+p = stop_at(main, "m2", main)
+expect("a sibling repo the guard saw an edit in is checked, under its own heading",
+       (p.returncode, f"In {sibling.resolve()}:" in p.stderr, '"s"' in p.stderr), (2, True, True), p.stderr)
+p = stop_at(main, "m3", main)
+expect("...but not in a session that never edited there", p.returncode, 0, p.stderr)
+subprocess.run(["git", "checkout", "-q", "--", "NOTES.md"], cwd=sibling, check=True)
+source = new_repo(WORK / "multi" / "subsource", {"RULES.md": blk("r", "Sub rules.")})
+subprocess.run(["git", "-c", "protocol.file.allow=always", "submodule", "add", "-q", str(source), "sub"], cwd=main, check=True,
+               capture_output=True)
+subprocess.run(["git", "commit", "-qm", "add sub"], cwd=main, check=True, capture_output=True)
+(main / "sub" / "RULES.md").write_text(blk("r", "Sub rules, rewritten by Bash."))
+p = stop_at(main, "m4", main)
+expect("a submodule is checked", (p.returncode, '"r"' in p.stderr), (2, True), p.stderr)
+subprocess.run(["git", "checkout", "-q", "--", "RULES.md"], cwd=main / "sub", check=True)
+
+bad = new_repo(WORK / "multi" / "bytes", {"a.md": blk("voice", "Original."),
+               "z.md": b'<!-- canon:protected:start name="caf\xe9" -->\nOld.\n<!-- canon:protected:end -->\n'})
+(bad / "a.md").write_text(blk("voice", "Rewritten."))
+(bad / "z.md").write_bytes(b'<!-- canon:protected:start name="caf\xe9" -->\nNew.\n<!-- canon:protected:end -->\n')
+for label, extra in [("default locale", {}), ("UTF-8 locale", {"LANG": "en_US.UTF-8", "PYTHONIOENCODING": "utf-8:strict"})]:
+    p = stop_at(bad, f"b-{len(extra)}", bad, **extra)
+    expect(f"{label}: a block name that isn't UTF-8 is reported with the others",
+           (p.returncode, "x a.md" in p.stderr, "x z.md" in p.stderr), (2, True, True), p.stderr)
+p = run(STOP, {"hook_event_name": "Stop", "session_id": "gone"}, main, env={**ENV, "CLAUDE_PLUGIN_ROOT": str(WORK / "gone")})[0]
+expect("plugin files missing (e.g. replaced by an update): Stop exits 1, which doesn't block", p.returncode, 1)
+p = run(GUARD, {"hook_event_name": "PreToolUse", "session_id": "gone", "tool_name": "Edit",
+                "tool_input": edit("three", "four")}, REPO, env={**ENV, "CLAUDE_PLUGIN_ROOT": str(WORK / "gone")})[0]
+expect("...and the guard exits 1 (python exits 2 for a missing script, which would block every edit)", p.returncode, 1)
+expect("the Stop hook doesn't start a login shell", "bash -l" in STOP, False)
 
 print("== Guard failure is a non-blocking error, not a block")
 import importlib.util
